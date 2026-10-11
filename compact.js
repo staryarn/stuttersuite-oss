@@ -5,6 +5,9 @@
   const $ = (s) => document.querySelector(s);
   const sync = () => {
     $('#compactAssist').textContent = $('#assistStatus').textContent.trim();
+    $('#compactTts').textContent = $('#ttsStatus').textContent.trim();
+    $('#compactProfile').textContent = $('#conditionName').textContent.trim();
+    $('#compactScript').hidden = !document.querySelectorAll('#phraseList .phrase').length;
     $('#compactPhrase').textContent = $('#currentPhrase').textContent.trim();
     $('#compactSource').textContent = '原稿の現在の句:';
     $('#compactGain').value = $('#masterGain').value;
@@ -13,7 +16,7 @@
   };
   $('#openCompact').addEventListener('click', () => { sync(); $('#compactPanel').hidden = false; });
   $('#closeCompact').addEventListener('click', () => $('#compactPanel').hidden = true);
-  $('#compactMute').addEventListener('click', () => $('#muteAssist').click());
+  $('#compactMute').addEventListener('click', () => emergencyStop());
   $('#compactPrevious').addEventListener('click', () => $('#previousPhrase').click());
   $('#compactPlay').addEventListener('click', () => $('#playPhrase').click());
   $('#compactNext').addEventListener('click', () => $('#nextPhraseBtn').click());
@@ -21,8 +24,8 @@
   $('#compactRate').addEventListener('input', (event) => { $('#ttsRate').value = event.target.value; $('#ttsRate').dispatchEvent(new Event('input')); });
   new MutationObserver(sync).observe($('#assistStatus'), {childList:true,subtree:true,characterData:true});
   new MutationObserver(sync).observe($('#currentPhrase'), {childList:true,subtree:true,characterData:true});
-  $('#settingLock').addEventListener('change', (event) => {
-    document.querySelectorAll('#detailsPanel, .module-grid, .rhythm').forEach((section) => section.querySelectorAll('input,select,button').forEach((node) => node.disabled = event.target.checked || node.dataset.unavailable === 'true'));
-    if (event.target.checked) $('#audioMessage').textContent = '詳細設定をロックしました。補助の停止と音量調整は引き続き操作できます。';
-  });
+  new MutationObserver(sync).observe($('#ttsStatus'), {childList:true,subtree:true,characterData:true});
+  new MutationObserver(sync).observe($('#conditionName'), {childList:true,subtree:true,characterData:true});
+  $('#masterGain').addEventListener('input', sync);
+  $('#ttsRate').addEventListener('input', sync);
 })();

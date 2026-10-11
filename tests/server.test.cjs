@@ -16,7 +16,7 @@ test('serves worklet modules with JavaScript MIME; refuses uploads and non-app f
       assert.match(response.headers.get('permissions-policy'),/microphone=\(self\)/);
       assert.match(response.headers.get('permissions-policy'),/speaker-selection=\(self\)/);
     }
-    for (const file of ['pitch-worklet.js', 'pitch-core.mjs']) {
+    for (const file of ['pitch-worklet.js', 'pitch-core.mjs', 'workspace.js']) {
       const response = await fetch(`${origin}/${file}`);
       assert.equal(response.status, 200); assert.match(response.headers.get('content-type'), /text\/javascript/);
     }

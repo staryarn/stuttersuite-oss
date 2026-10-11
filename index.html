@@ -1,160 +1,908 @@
-<!doctype html>
-<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
-<html lang="ja">
+<!doctype html><!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="ja" data-theme="light">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'" />
-  <title>StutterSuite</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="compact.css" />
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'"><title>StutterSuite</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="compact.css">
 </head>
 <body>
-  <a class="skip" href="#main">本文へ移動</a>
-  <header class="topbar">
-    <div class="brand"><span class="brand-mark" aria-hidden="true">S</span><div><strong>StutterSuite</strong><small>音声・原稿・リズムの発話補助</small></div></div>
-    <div class="status-group" aria-label="現在の状態">
-      <span id="assistStatus" class="status stopped"><i></i>補助: 停止</span>
-      <span id="micStatus" class="status idle"><i></i>マイク: 未使用</span>
-    </div>
-    <button id="emergency" class="emergency" title="Ctrl+Alt+F12、またはダイアログを閉じた状態でEsc">補助音を緊急停止</button>
-  </header>
-
-  <div class="app-shell">
-    <nav class="sidebar" aria-label="主なメニュー">
-      <button class="nav active" data-page="home">ホーム</button>
-      <button class="nav" data-page="assist">通話・会議補助</button>
-      <button class="nav" data-page="script">原稿補助</button>
-      <button class="nav" data-page="history">試用・振り返り</button>
-      <button class="nav" data-page="settings">機器・設定</button>
-      <button class="nav" data-page="guide">使い方・仕組み</button>
-      <div class="sidebar-foot">音声はこの端末内で処理します。<br>通話のミュートは通話アプリ側で操作します。<br><span class="source-links"><a href="https://github.com/xer5xer5/stuttersuite-oss" target="_blank" rel="noopener noreferrer">ソースコード</a><a href="https://github.com/xer5xer5/stuttersuite-oss/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">ライセンス</a></span></div>
-    </nav>
-
-    <main id="main">
-      <aside id="storageNotice" class="notice" role="alert" hidden><p id="storageMessage"></p><button id="exportRecovery" class="secondary" hidden>元の保存データを書き出す</button> <button id="storageBackup" class="secondary">現在の内容をバックアップに書き出す</button> <button class="secondary goto" data-target="settings">復元・削除の設定へ</button></aside>
-      <section id="page-home" class="page active" aria-labelledby="homeTitle">
-        <p class="eyebrow">ホーム</p><h1 id="homeTitle">通話や発表に備える</h1>
-        <p class="lead">補助はいつでも停止できます。振り返りの記録は任意です。</p>
-        <div class="warning"><strong>ヘッドホンを確認してください。</strong> 補助音は自分で聞くためのものです。スピーカーでの使用は避け、通話相手に補助音が聞こえないことを事前に確認してください。</div>
-        <section class="panel welcome-panel" aria-labelledby="welcomeTitle"><div><p class="eyebrow">初めて使う方へ</p><h2 id="welcomeTitle">自分に合う補助を試す</h2><p>自分の声に遅延を加えたり、音程を変えたりできます。原稿の読み上げやメトロノームも利用できます。</p><p class="hint">音声は端末内で処理し、送信・録音保存しません。設定や原稿・履歴はブラウザに保存します。</p></div><button class="primary" data-help="guide-start">使い方を確認する</button><button class="secondary" data-help="guide-science">仕組みと研究結果</button></section>
-        <div class="quick-grid">
-          <article class="quick-card"><span class="icon">◌</span><h2>通話・会議</h2><p>遅延・音程・音量を調整し、補助音をヘッドホンで聞きます。</p><button class="primary goto" data-target="assist">補助を準備する</button></article>
-          <article class="quick-card"><span class="icon">▤</span><h2>発表</h2><p>原稿を短い区切りごとに読み上げ、自分のペースで話せます。</p><button class="primary goto" data-target="script">原稿を準備する</button></article>
-          <article class="quick-card muted-card"><span class="icon">↔</span><h2>条件を比較する</h2><p>保存済みの設定や補助なしの状態を、同じ内容で比較します。</p><button class="secondary" id="startTrial">条件を比較する</button></article>
-        </div>
-        <section class="profile-section"><div class="section-heading"><div><p class="eyebrow">保存済み</p><h2>よく使う設定</h2></div><div><button id="saveCurrentProfile" class="text-btn">現在の設定を保存</button><button id="newProfile" class="text-btn">＋ 新しい設定</button></div></div><div id="profileCards" class="profile-cards"></div></section>
-      </section>
-
-      <section id="page-assist" class="page" aria-labelledby="assistTitle">
-        <p class="eyebrow">通話・会議補助</p><h1 id="assistTitle">補助を調整する</h1>
-        <div class="notice">このアプリの補助音は、自分のヘッドホンに再生されます。通話相手への音声やミュートは、通話アプリ側で設定してください。</div>
-        <div class="assist-layout">
-          <div class="panel">
-            <div class="panel-head"><h2>カスタム設定</h2><label class="lock"><input id="settingLock" type="checkbox"> 詳細設定をロック</label></div>
-            <label>保存済みの設定<select id="profileSelect"></select></label>
-            <p class="hint">下の「加工音声」で遅延と音程を調整します。ノイズ、自声モニター、メトロノームは、必要な機能だけ有効にしてください。</p>
-            <p id="pitchSupport" class="hint" role="status"></p><button class="text-btn" data-help="guide-feedback">DAF・FAFの違いと使い方</button>
-            <div class="range-row"><label for="masterGain">補助音量 <output id="masterGainValue">-24 dB</output></label><input id="masterGain" type="range" min="-60" max="0" value="-24"><p class="hint">最初は小さい音量で確認してください。dBFSはデジタル信号の振幅を表し、耳元の音圧とは異なります。</p></div>
-            <div class="actions"><button id="prepareAudio" class="secondary">機器を確認</button><button id="startAssist" class="primary">補助を開始</button><button id="muteAssist" class="danger" disabled>補助音を停止</button><button id="openCompact" class="secondary">小型パネルを開く</button></div>
-            <p id="audioMessage" class="inline-message" aria-live="polite">開始前はマイクを使用しません。</p>
-          </div>
-          <div class="panel details" id="detailsPanel"><div class="panel-head"><h2>加工音声の設定</h2><button class="text-btn" id="applyPreset">2系統の遅延設定を適用</button></div>
-            <div class="branch-grid">
-              <fieldset><legend>加工音声 A</legend><label class="toggle"><input id="branchAEnabled" type="checkbox" checked> 有効</label><label>追加遅延 <output id="delayAValue">50 ms</output><input id="delayA" type="range" min="0" max="300" value="50"></label><label>音程 <output id="pitchAValue">0.0 半音</output><input id="pitchA" aria-label="加工音声Aの音程（半音）" type="range" min="-12" max="12" step="0.5" value="0"></label><p class="hint">正の値で高く、負の値で低くなります。0半音では音程を変更しません。</p><label>相対ゲイン <output id="gainAValue">0 dB</output><input id="gainA" type="range" min="-60" max="0" value="0"></label><label>出力<select id="panA"><option value="both">両耳</option><option value="left">左のみ</option><option value="right">右のみ</option></select></label></fieldset>
-              <fieldset><legend>加工音声 B</legend><label class="toggle"><input id="branchBEnabled" type="checkbox"> 有効</label><label>追加遅延 <output id="delayBValue">200 ms</output><input id="delayB" type="range" min="0" max="300" value="200"></label><label>音程 <output id="pitchBValue">0.0 半音</output><input id="pitchB" aria-label="加工音声Bの音程（半音）" type="range" min="-12" max="12" step="0.5" value="0"></label><p class="hint">Aと同じマイク入力を、別の設定で加工します。最初はAのみを有効にして試してください。</p><label>相対ゲイン <output id="gainBValue">-6 dB</output><input id="gainB" type="range" min="-60" max="0" value="-6"></label><label>出力<select id="panB"><option value="both">両耳</option><option value="left">左のみ</option><option value="right">右のみ</option></select></label></fieldset>
-            </div>
-            <div class="meter-row"><div><strong>追加遅延</strong><span id="latencyReadout">50 ms</span></div><div><strong>音程処理バッファ</strong><span id="pitchLatencyReadout">なし</span></div><div><strong>総遅延</strong><span>未測定</span></div><div><strong>最終出力</strong><span>−3 dBFS リミッター</span></div></div>
-          </div>
-          <button class="text-btn" data-help="guide-tools">ノイズ・自声モニター・リズムの使い方</button>
-          <div class="module-grid">
-            <div class="panel"><div class="panel-head"><h2>ノイズ（マスキング）</h2><label class="toggle"><input id="maskingEnabled" type="checkbox"> 有効</label></div><label>ノイズ<select id="maskingType"><option value="white">ホワイト</option><option value="pink">ピンク</option><option value="brown">ブラウン</option></select></label><label>周波数調整<select id="maskingFilter"><option value="none">なし</option><option value="lowpass">高域を抑える</option><option value="highpass">低域を抑える</option></select></label><label>ノイズ音量 <output id="maskingGainValue">-42 dB</output><input id="maskingGain" type="range" min="-60" max="-12" value="-42"></label><p class="hint">最初は小さい音量で確認してください。ノイズ音量のdB表示は、デジタル信号の相対的な音量です。</p></div>
-            <div class="panel"><div class="panel-head"><h2>自声モニター（直接フィードバック）</h2><label class="toggle"><input id="directEnabled" type="checkbox"> 有効</label></div><label>相対ゲイン <output id="directGainValue">-18 dB</output><input id="directGain" type="range" min="-60" max="0" value="-18"></label><label>出力<select id="directPan"><option value="both">両耳</option><option value="left">左のみ</option><option value="right">右のみ</option></select></label><p class="hint">自分の声を加工せずに再生します。ブラウザや機器による遅延は発生します。</p></div>
-          </div>
-          <div class="panel rhythm"><div class="panel-head"><h2>メトロノーム</h2><label class="toggle"><input id="metroEnabled" type="checkbox"> 有効</label></div><div class="rhythm-controls"><label>テンポ <output id="bpmValue">60 BPM</output><input id="bpm" type="range" min="30" max="180" value="60"></label><label>表示<select id="metroType"><option value="visual">画面のみ</option><option value="sound">音のみ</option><option value="both">音と画面</option></select></label><div id="pulse" class="pulse" aria-label="拍の表示"></div></div></div>
-        </div>
-      </section>
-
-      <section id="page-script" class="page" aria-labelledby="scriptTitle"><p class="eyebrow">原稿補助</p><h1 id="scriptTitle">原稿と一緒に話す</h1><p class="lead">原稿の読み上げ音声に合わせて話すための補助です。ヘッドホンで使用してください。</p>
-        <button class="text-btn" data-help="guide-script">原稿と一緒に話す手順とTTSの出力先</button>
-        <div class="script-layout"><div class="panel editor"><div class="panel-head"><h2>原稿</h2><span id="charCount">0 / 50,000 文字</span></div><label class="sr-only" for="scriptText">原稿本文</label><textarea id="scriptText" maxlength="50000" placeholder="ここに原稿を貼り付けてください。句読点や改行で句に分けます。"></textarea><div class="editor-actions"><button id="splitScript" class="secondary">句に分ける</button><button id="saveScript" class="primary">原稿を保存</button><button id="txtImportButton" class="secondary" type="button">TXTを読み込む</button><input id="txtImport" type="file" accept=".txt,text/plain" hidden></div><p class="hint">原稿を修正したら、もう一度「句に分ける」を押してください。音声はブラウザ内のローカル音声合成を使います。</p></div>
-          <div class="panel phrase-panel"><div class="panel-head"><h2>斉読 / TTS同期</h2><label>音声<select id="voiceSelect"><option>利用可能な音声を読み込み中…</option></select></label></div><p class="hint">読み上げ音声に合わせて、同じ原稿を話します。本アプリによる治療効果は検証されていません。</p><div id="phraseList" class="phrase-list"><p class="empty">原稿を句に分けると、ここに表示されます。</p></div><div class="player"><p><strong>現在の句</strong><span id="currentPhrase">—</span></p><p class="next"><strong>次の句</strong><span id="nextPhrase">—</span></p><div class="player-actions"><button id="previousPhrase" class="secondary">句頭へ</button><button id="playPhrase" class="primary">再生</button><button id="repeatPhrase" class="secondary">この句を繰り返す</button><button id="pausePhrase" class="secondary">停止</button><button id="nextPhraseBtn" class="secondary">次の句</button></div><label class="toggle"><input id="continuousChoral" type="checkbox"> 連続して次の句を再生する</label><label>開始カウントダウン <output id="choralCountdownValue">0 秒</output><input id="choralCountdown" type="range" min="0" max="5" step="1" value="0"></label><label>読み上げ速度 <output id="ttsRateValue">1.20 倍</output><input id="ttsRate" type="range" min="0.5" max="2" value="1.2" step="0.05"></label><label>句間休止 <output id="pauseValue">0.0 秒</output><input id="phrasePause" type="range" min="0" max="5" step="0.1" value="0"></label></div></div></div>
-      </section>
-
-      <section id="page-history" class="page" aria-labelledby="historyTitle"><p class="eyebrow">試用・振り返り</p><h1 id="historyTitle">使用後の記録を残す</h1><button class="text-btn" data-help="guide-save">条件比較・保存・振り返りの使い方</button><div class="history-layout"><div class="panel"><h2>セッションの評価 <span class="optional">任意</span></h2><p>負担や自然さなど、記録したい項目だけ入力してください。診断や効果の判定を行う機能ではありません。</p><div class="rating-grid"><label>話す負担 <output id="effortOut">—</output><input id="effort" type="range" min="1" max="9" value="5"><small>1: 負担がない　9: 非常に負担が大きい</small></label><label>自然さ <output id="naturalnessOut">—</output><input id="naturalness" type="range" min="1" max="9" value="5"><small>1: 非常に不自然　9: とても自然</small></label><label>次回も使いたい<select id="wouldUse"><option value="">未回答</option><option value="yes">はい</option><option value="unsure">判断できない</option><option value="no">いいえ</option></select></label></div><label>メモ <textarea id="sessionNote" rows="3" maxlength="10000" placeholder="使用した場面や気付いたこと（任意）"></textarea></label><button id="saveReflection" class="primary">振り返りを保存</button></div><div class="panel"><div class="panel-head"><h2>履歴</h2><button id="exportData" class="text-btn">JSONを書き出す</button></div><div id="historyList" class="history-list"><p class="empty">まだ履歴はありません。</p></div></div></div></section>
-
-      <section id="page-settings" class="page" aria-labelledby="settingsTitle"><p class="eyebrow">機器・設定</p><h1 id="settingsTitle">安全に使うための確認</h1><button class="text-btn" data-help="guide-faq">音が出ないとき・プライバシー</button><div class="settings-grid"><div class="panel"><h2>機器</h2><label>マイク<select id="inputDevice"><option value="default">既定のマイク（ブラウザが選択）</option></select></label><label>補助音の出力先<select id="outputDevice"><option value="default">ブラウザの既定の出力</option></select></label><p class="hint">Web版では出力先の切替に対応しないブラウザがあります。その場合はOSまたはブラウザ側でヘッドホンを選んでください。</p><button id="refreshDevices" class="secondary">機器一覧を更新</button></div><div class="panel"><h2>通話前チェック</h2><label class="check"><input id="checkedHeadphones" type="checkbox"> ヘッドホンを装着した</label><label class="check"><input id="checkedMic" type="checkbox"> 通話アプリの入力が物理マイクになっている</label><label class="check"><input id="checkedShare" type="checkbox"> 「コンピューターの音声を共有」はOFFにした</label><p class="hint">このアプリでは通話アプリの設定を確認できません。各項目を自分で確認してください。</p></div><div class="panel"><h2>データ</h2><p>設定・原稿・履歴はこのブラウザのローカル保存領域に保存されます。</p><button id="backupData" class="secondary">バックアップを書き出す</button><button id="restoreDataButton" class="secondary" type="button">バックアップを復元</button><input id="restoreData" type="file" accept="application/json" hidden><button id="clearData" class="danger-outline">この端末のデータを削除</button></div><div class="panel"><h2>ショートカット</h2><dl><dt>Esc / Ctrl + Alt + F12</dt><dd>補助音を緊急停止（比較ダイアログのEscは閉じるだけ）</dd><dt>Ctrl + Alt + F9</dt><dd>原稿を再生 / 停止</dd><dt>Ctrl + Alt + F10</dt><dd>原稿の次の句</dd><dt>Ctrl + Alt + F8</dt><dd>原稿の句頭へ戻る</dd></dl><p class="hint">ショートカットは、このタブにフォーカスがあるときだけ有効です。Zoom・Teamsや別のタブを操作中は使えません。緊急停止ボタンとCtrl+Alt+F12はいつでも、Escは比較ダイアログを閉じた状態で緊急停止します。同じブラウザ・同じサイトの他のタブにも停止を伝えます。音声エラーによる自動停止は、このタブだけを停止します。別のブラウザやプライベートウィンドウには伝わりません。</p></div></div></section>
-      <section id="page-guide" class="page guide-page" aria-labelledby="guideTitle">
-        <p class="eyebrow">使い方・仕組み</p><h1 id="guideTitle">補助機能の使い方と仕組み</h1>
-        <p class="lead">遅延・音程・リズムを調整し、話しやすさや負担の変化を試せます。アカウントの登録や録音は不要です。</p>
-        <nav class="guide-toc" aria-label="ガイドの目次"><a href="#guide-start">使用手順</a><a href="#guide-feedback">遅延・音程</a><a href="#guide-tools">ノイズ・リズム</a><a href="#guide-script">原稿・斉読</a><a href="#guide-save">保存・比較</a><a href="#guide-science">仕組みと研究結果</a><a href="#guide-faq">よくある質問</a></nav>
-        <section class="panel guide-section" id="guide-start" aria-labelledby="guideStartTitle">
-          <h2 id="guideStartTitle">使い始めるまでの5ステップ</h2>
-          <ol class="guide-steps">
-            <li><strong>ヘッドホンを接続する</strong><p>有線のヘッドホンやヘッドセットを接続し、「機器・設定」で入力と出力を確認してください。スピーカーを使うと、再生音がマイクに入り、ハウリングが発生する場合があります。</p><button class="secondary goto" data-target="settings">機器・設定へ</button></li>
-            <li><strong>補助なしの状態を確認する</strong><p>短い文章や自己紹介を話し、普段の話しやすさや負担を確認します。録音や評価の入力は不要です。</p></li>
-            <li><strong>加工音声Aを調整する</strong><p>「通話・会議補助」で加工音声Aを有効にし、追加遅延と音程を調整します。遅延だけを試す場合は音程を0半音に、音程だけを試す場合は追加遅延を0 msに設定してください。最初はAのみを使い、小さい音量で開始します。</p><button class="secondary goto" data-target="assist">補助を準備する</button></li>
-            <li><strong>同じ内容で比較する</strong><p>30秒程度を目安に、無理のない時間で試してください。話しやすさ、自然さ、疲れや不快感を確認し、合わない場合は「補助音を停止」を押します。緊急停止ボタンやCtrl+Alt+F12、比較ダイアログを閉じた状態でEscキーでも停止できます。</p></li>
-            <li><strong>使いやすい設定を保存する</strong><p>「現在の設定を保存」で、使用する場面に応じた名前を付けます。通話で使う前に、補助音が相手に聞こえないことを通話アプリ側でも確認してください。</p></li>
-          </ol>
-          <p class="hint">初期値は動作を試すための設定です。個人に最適な値や臨床上の推奨値ではなく、音量や加工を強めても効果が増すとは限りません。</p>
-        </section>
-        <section class="panel guide-section" id="guide-feedback" aria-labelledby="guideFeedbackTitle">
-          <h2 id="guideFeedbackTitle">追加遅延と音程の調整（DAF・FAF）</h2>
-          <div class="guide-flow" aria-label="音声の経路"><span>マイク入力</span><span aria-hidden="true">→</span><span>端末内で音声を加工</span><span aria-hidden="true">→</span><span>ヘッドホンで再生</span></div>
-          <dl class="guide-definitions"><dt>追加遅延：DAF（遅延フィードバック）</dt><dd>自分の声を遅らせて再生します。50 msは0.05秒の追加遅延です。値を大きくすると遅延も増えますが、話しにくくなる場合があります。</dd><dt>音程：FAF（音程を変えるフィードバック）</dt><dd>自分の声の高さを変えて再生します。正の値で高く、負の値で低くなり、12半音で1オクターブ変わります。0半音では音程を変更しません。発話や再生の速度は変わりません。</dd><dt>遅延と音程の併用</dt><dd>両方の値を設定すると、DAFとFAFを併用できます。単独で使う場合より効果が高いとは限らないため、それぞれの状態と比較してください。</dd><dt>加工音声A・B</dt><dd>同じマイク入力から、設定の異なる2系統の加工音声を作ります。追加遅延、音程、相対ゲイン、左右の出力を個別に調整できます。ノイズや自声モニターも同じ画面で組み合わせられます。</dd></dl>
-          <p><strong>操作手順：</strong>加工音声を有効にする → スライダーで追加遅延・音程・音量を調整する → 「補助を開始」を押す。保存済みの設定を読み込むと補助は停止します。個別の設定変更は、動作中の補助にも反映されます。</p>
-          <p><strong>補助を使わない場合：</strong>「補助音を停止」を押すか、加工音声A・B、ノイズ、自声モニター、メトロノームの「有効」をすべて解除してください。</p>
-          <p><strong>遅延表示について：</strong>追加遅延とは別に、ブラウザ・機器・音程処理による遅延が発生します。追加遅延が0 msでも、実際の遅延はゼロではありません。「音程処理バッファ」は処理に必要な時間の目安で、耳元に届くまでの総遅延は未測定です。</p>
-          <p><strong>研究結果：</strong>FAFでは、12人を対象とした音読研究で吃音頻度の低下が報告されています。ただし、全員への効果、自由会話での効果、長期的な効果を示すものではありません。DAF単独の2026年のメタ分析では、全体として有意な改善は確認されませんでした。<a href="https://pubmed.ncbi.nlm.nih.gov/8729926/" target="_blank" rel="noopener noreferrer">FAFの研究（1996）</a> ／ <a href="https://pubmed.ncbi.nlm.nih.gov/42340070/" target="_blank" rel="noopener noreferrer">DAFのメタ分析（2026）</a></p>
-          <button class="secondary goto" data-target="assist">通話・会議補助へ</button>
-        </section>
-        <section class="panel guide-section" id="guide-tools" aria-labelledby="guideToolsTitle">
-          <h2 id="guideToolsTitle">ノイズ・自声モニター・メトロノーム</h2>
-          <details><summary>ノイズ（マスキング）の使い方</summary><p>ノイズを重ねて、自分の声の聞こえ方を変えます。ホワイトノイズは広い周波数帯を含み、ピンクノイズとブラウンノイズは低域が相対的に強く聞こえます。周波数調整では、高域または低域を抑えられます。</p><p>「有効」を選び、小さい音量から試してください。自分の声を完全に消そうとして音量を上げないでください。特定のマスキング条件で短期的な変化を報告した研究はありますが、本アプリのノイズで同じ効果が得られるかは未検証です。</p></details>
-          <details><summary>自声モニターの使い方</summary><p>遅延や音程変更を加えず、自分の声をヘッドホンに再生する機能です。ブラウザや機器による遅延は発生します。相対ゲインでこの経路の音量を調整し、補助音量で全体の音量を調整します。</p><p>自分の声を確認するための機能です。単独で吃音を改善する効果は検証されていません。加工音声と併用すると、聞こえ方が変わります。</p></details>
-          <details><summary>メトロノームの使い方</summary><p>一定の拍に合わせて、発話のタイミングを調整します。BPMは1分間の拍数で、60 BPMは1秒に1拍です。画面のみ、音のみ、音と画面の3種類から選べます。</p><p>「有効」を選び、無理なく合わせられるテンポで試してください。拍に合わせて話す研究と、画面の点滅を見るだけの使い方は条件が異なります。流暢さに加え、自然さや負担も確認してください。</p></details>
-          <p class="hint">マスキング・斉読・リズムを使った音読研究では、吃音頻度、自然さ、負担の変化は一様ではありません。本アプリは研究の機器・音量・手順を再現したものではありません。<a href="https://pubmed.ncbi.nlm.nih.gov/22365886/" target="_blank" rel="noopener noreferrer">Inghamら（2012）</a></p>
-        </section>
-        <section class="panel guide-section" id="guide-script" aria-labelledby="guideScriptTitle">
-          <h2 id="guideScriptTitle">原稿の読み上げに合わせて話す（斉読）</h2>
-          <p>斉読とは、別の音声とほぼ同時に、同じ内容を話すことです。読み上げ音声を聞きながら、原稿の内容や話すタイミングを確認できます。</p>
-          <ol><li>原稿を貼り付けるかTXTファイルを読み込み、「句に分ける」を押します。</li><li>句、音声、読み上げ速度を選び、「再生」を押します。読み上げに合わせて自分でも話します。</li><li>「句頭へ」「この句を繰り返す」「次の句」で再生位置を操作します。「停止」で読み上げを停止できます。</li><li>連続再生を有効にすると、次の句へ自動で進みます。開始カウントダウンと句間休止で、準備の時間を調整できます。</li></ol>
-          <p>読み上げ速度の設定はTTSにのみ適用され、加工音声の音程設定には影響しません。停止後に再生すると句頭から始まります。発話に合わせて原稿の位置を自動追跡する機能はありません。</p>
-          <p><strong>出力先について：</strong>TTSには、ブラウザが端末内の音声として識別した読み上げ音声だけを使います。出力先はOS／ブラウザの既定の出力先です。このアプリで指定した補助音の出力先とは異なります。端末内の音声が利用できない場合は再生せず、クラウド音声には切り替えません。</p>
-          <p><strong>研究結果：</strong>TTSや録音した自分の声との斉読は、原稿を使う模擬発表で研究されています。このOSS版はTTSのみを提供し、自声の録音・保存は行いません。この研究だけでは、自由会話や日本語での効果は判断できません。<a href="https://doi.org/10.1016/j.jfludis.2025.106168" target="_blank" rel="noopener noreferrer">模擬発表の探索的研究（2025）</a></p>
-          <button class="secondary goto" data-target="script">原稿補助へ</button>
-        </section>
-        <section class="panel guide-section" id="guide-save" aria-labelledby="guideSaveTitle">
-          <h2 id="guideSaveTitle">設定の保存・比較・操作</h2>
-          <dl class="guide-definitions"><dt>設定の保存</dt><dd>遅延・音程・ノイズ・リズムなどを、場面に応じた名前で保存できます。「現在の設定を保存」で既存の設定を更新するか、新しく追加してください。設定を読み込んでも、マイクや補助音は自動で開始しません。</dd><dt>条件の比較</dt><dd>ホームの「条件を比較する」で、保存済みの設定や「補助なし」から2つの条件を選びます。順序をランダムにすることもできます。各条件を読み込んだ後、自分で補助を開始してください。試した結果は任意で記録でき、自動採点や効果の判定は行いません。</dd><dt>振り返りの記録</dt><dd>話す負担、自然さ、次回も使いたいか、メモを記録できます。各項目の入力は任意です。補助開始時の設定も一緒に保存します。診断用の評価尺度ではありません。</dd><dt>小型パネルと設定ロック</dt><dd>小型パネルでは、音量・原稿再生・停止を操作できます。「詳細設定をロック」を有効にすると、詳細設定の誤操作を防げます。ショートカットは、このアプリの画面を操作している間だけ有効です。通話中も緊急停止ボタンを押せる位置に画面を置いてください。</dd><dt>バックアップ</dt><dd>設定・原稿・履歴は、このサイトのブラウザ保存領域に保存されます。JSONを書き出すと、別のブラウザでも復元できます。原稿とメモが含まれ、暗号化されないため、共有する場合は内容を確認してください。</dd></dl>
-        </section>
-        <section class="panel guide-section" id="guide-science" aria-labelledby="guideScienceTitle">
-          <h2 id="guideScienceTitle">音声やリズムを変える仕組みと研究結果</h2>
-          <p>発話中は、口を動かすと同時に自分の声を聞いています。聞こえる音声を変えたり、別の音声や拍に合わせたりすることで、話し方が変化する場合があります。StutterSuiteでは、遅延・音程・リズムを調整し、自分にとって使いやすい条件を試せます。</p>
-          <div class="guide-evidence"><div><h3>研究で観察された結果</h3><p>FAF、斉読、リズムなどの条件で、短期的に吃音が減少した報告があります。ただし、結果は個人や条件によって異なります。DAF単独のメタ分析では、全体として有意な改善は確認されていません。</p></div><div><h3>仕組みに関する仮説</h3><p>自声の変化が聴覚と発話運動の連携に影響する、別の音声や拍が発話の開始やタイミングを支える、といった仮説があります。FAFの効果を「別人と話す効果」と断定することや、吃音の原因を単一の脳機能で説明することはできません。</p></div></div>
-          <p>感覚フィードバックの役割には複数の理論があります。斉読の効果を外部リズムだけで説明する仮説と、矛盾する結果を報告した研究もあります。<a href="https://pubmed.ncbi.nlm.nih.gov/37216145/" target="_blank" rel="noopener noreferrer">感覚フィードバックのレビュー</a> ／ <a href="https://pubmed.ncbi.nlm.nih.gov/39772710/" target="_blank" rel="noopener noreferrer">斉読とタイミングの研究</a></p>
-          <p><strong>本アプリの検証範囲：</strong>研究で得られた短期的な結果は、本アプリの治療効果、通話中の効果、長期的な改善を証明するものではありません。吃音の回数だけでなく、負担や自然さ、伝えたい内容を話せたかも確認してください。合わない場合は補助を停止できます。</p>
-          <p class="hint">出典の確認日：2026-10-08。リンク先の抄録と取得できた本文を基に要約しています。研究の対象・課題・装置は本アプリと異なります。本アプリは診断や治療を行うものではなく、効果を保証しません。</p>
-        </section>
-        <section class="panel guide-section" id="guide-faq" aria-labelledby="guideFaqTitle">
-          <h2 id="guideFaqTitle">よくある質問・プライバシー</h2>
-          <details><summary>音声は収集・保存されますか？</summary><p>マイクの使用許可を得た後、端末内で音声を加工し、ヘッドホンに再生します。処理に必要な短い音声データはメモリ内にのみ保持し、外部への送信や録音・保存は行いません。補助を停止すると、マイクを解放して処理を終了します。設定・原稿・履歴にも音声データは含まれません。</p><p>サイトの表示や出典リンクの閲覧には通信が発生しますが、このアプリからマイク音声や原稿を送信する処理はありません。</p></details>
-          <details><summary>音程を変更できない・補助を開始できない場合</summary><p>HTTPSの公開ページまたはlocalhostで、AudioWorkletに対応したブラウザを使用してください。処理ファイルの読み込みに失敗した場合は、ページを再読み込みしてください。音程を変更できない環境でも、追加遅延やノイズは利用できます。音程が0半音の場合は音程処理を行いません。</p></details>
-          <details><summary>音が出ない・遅延が大きい場合</summary><p>マイクの使用許可、入力・出力機器、OSの音量を確認してください。補助音の出力先とTTSの既定の出力先は別です。Bluetooth、機器、ブラウザによる遅延も加わるため、有線機器でも確認してください。画面の遅延表示は、耳元までの実測値ではありません。</p></details>
-          <details><summary>緊急停止すると通話相手への音声も止まりますか？</summary><p>停止するのは、このアプリの補助音・TTSと、このアプリが使用するマイクです。通話アプリのマイクやミュートには影響しません。相手への音声を止める場合は、通話アプリ側でミュートしてください。</p></details>
-          <details><summary>以前のFAF設定が無効になっている場合</summary><p>旧版で失われた音程値は復元できません。「加工音声」の音程を再設定し、保存してください。更新によって補助が自動で開始することはありません。</p></details>
-          <details><summary>効果を感じない・話しにくい場合</summary><p>補助を停止して休んでください。同じ人でも、場面や日によって使いやすさは変わります。不快感を我慢したり、音量を上げ続けたりする必要はありません。</p></details>
-        </section>
-      </section>
-
-    </main>
-  </div>
-  <div id="trialModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="trialTitle"><div class="modal-card"><button class="close" data-close-modal aria-label="閉じる">×</button><p class="eyebrow">個人内比較</p><h2 id="trialTitle">条件を比較する</h2><p>比較する2つの条件を選んでください。保存済みの設定と、補助なしの状態を比較できます。</p><label>条件 A<select id="trialProfileA"></select></label><label>条件 B<select id="trialProfileB"></select></label><label class="toggle"><input id="trialRandomize" type="checkbox"> 条件の順序をランダムにする</label><div class="trial-step"><span id="trialStep">1 / 2</span><strong id="trialCondition">補助なし</strong><button id="trialStartButton" class="primary">この条件を準備</button></div><button id="trialNext" class="secondary">次の条件へ</button></div></div>
-  <aside id="compactPanel" class="compact-panel" aria-label="小型パネル" hidden><div class="compact-head"><strong>StutterSuite</strong><button id="closeCompact" aria-label="小型パネルを閉じる">×</button></div><p id="compactProfile">会議用</p><div class="compact-state"><span id="compactAssist">補助: 停止</span></div><button id="compactMute" class="danger">補助音を停止</button><label>音量<input id="compactGain" type="range" min="-60" max="0" value="-24"></label><p class="compact-phrase"><strong id="compactSource">原稿の現在の句:</strong> <span id="compactPhrase">—</span></p><label>読み上げ速度 <output id="compactRateValue">1.20 倍</output><input id="compactRate" type="range" min="0.5" max="2" value="1.2" step="0.05"></label><div><button id="compactPrevious" class="secondary">句頭へ</button><button id="compactPlay" class="primary">再生</button><button id="compactNext" class="secondary">次の句</button></div></aside>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="audio-engine.js"></script>
-  <script src="app.js"></script>
-  <script src="compact.js"></script>
+<a class="skip" href="#main">本文へ移動</a>
+<header class="topbar">
+<div class="brand">
+<span class="brand-mark" aria-hidden="true">S</span>
+<div>
+<strong>StutterSuite</strong><small>音声・原稿・リズムの発話補助</small>
+</div>
+</div>
+<div class="status-group" aria-label="現在の状態">
+<span id="assistStatus" class="status stopped"><i></i>補助: 停止</span><span id="micStatus" class="status idle"><i></i>マイク: 未使用</span><span id="ttsStatus" class="status idle"><i></i>TTS: 停止</span>
+</div>
+<button id="themeToggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="ダークモード"><span>ダーク</span><span class="theme-track" aria-hidden="true"></span></button>
+<button id="emergency" class="emergency" title="Ctrl+Alt+F12、または説明やダイアログを閉じた状態でEsc">すべて停止</button>
+</header>
+<div class="app-shell">
+<nav class="sidebar" aria-label="主なメニュー">
+<div class="nav-caption">
+WORKSPACE
+</div>
+<button class="nav active" data-page="assist" aria-current="page"><span aria-hidden="true">◉</span> 音声補助</button><button class="nav" data-page="script"><span aria-hidden="true">▤</span> 原稿・TTS</button><button class="nav" data-page="history"><span aria-hidden="true">↔</span> 記録・比較</button><button class="nav" data-page="settings"><span aria-hidden="true">⚙</span> 機器・データ</button>
+<div class="nav-divider">
+</div>
+<button class="nav" data-page="guide"><span aria-hidden="true">ⓘ</span> ガイド</button><button class="nav" data-page="home"><span aria-hidden="true">☆</span> 保存設定</button>
+<div class="sidebar-foot">
+音声は端末内で処理します。<br>通話のミュートは通話アプリで操作します。
+<div class="source-links">
+<a href="https://github.com/xer5xer5/stuttersuite-oss" target="_blank" rel="noopener noreferrer">ソースコード</a><a href="https://github.com/xer5xer5/stuttersuite-oss/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">ライセンス</a>
+</div>
+</div>
+</nav>
+<main id="main">
+<aside id="storageNotice" class="notice" role="alert" hidden>
+<p id="storageMessage">
+</p>
+<button id="exportRecovery" class="secondary" hidden>元の保存データを書き出す</button><button id="storageBackup" class="secondary">現在の内容をバックアップに書き出す</button><button class="secondary goto" data-target="settings">復元・削除へ</button>
+</aside>
+<section id="page-assist" class="page active" aria-labelledby="assistTitle">
+<div class="page-heading">
+<div>
+<p class="eyebrow">
+AUDIO WORKSPACE
+</p>
+<h1 id="assistTitle">
+音声補助
+</h1>
+</div>
+<button class="text-btn" data-help="guide-start">はじめて使う方へ ↗</button>
+</div>
+<div class="workspace-toolbar panel">
+<div class="profile-bar">
+<label class="sr-only" for="profileSelect">保存済みの設定</label><select id="profileSelect"></select><button class="info-button" type="button" data-info="save" aria-label="保存設定の説明" aria-expanded="false">i</button><button id="updateProfile" class="secondary">更新</button><button id="saveCurrentProfile" class="secondary">別名で保存</button><button id="newProfile" class="secondary">複製</button><button id="openProfiles" class="text-btn goto" data-target="home">一覧</button><span id="dirtyState" class="dirty-state" role="status">未保存の設定</span><button id="revertCondition" class="text-btn">元に戻す</button><button id="startTrial" class="secondary">比較</button><button class="info-button" type="button" data-info="compare" aria-label="条件比較の説明" aria-expanded="false">i</button>
+</div>
+<div class="device-bar">
+<label for="inputDevice">マイク<select id="inputDevice"><option value="default">既定のマイク</option></select></label><label for="outputDevice">補助音の出力先<select id="outputDevice"><option value="default">ブラウザの既定出力</option></select></label><button class="info-button" type="button" data-info="devices" aria-label="機器の説明" aria-expanded="false">i</button>
+<div class="control">
+<div class="control-heading">
+<label for="masterGain">全体音量</label><button class="info-button" type="button" data-info="master" aria-label="全体音量の説明" aria-expanded="false">i</button><output id="masterGainValue" for="masterGain masterGainNumber">-24 dB</output>
+</div>
+<div class="range-input">
+<input id="masterGain" type="range" min="-60" max="0" value="-24" step="1" aria-label="全体音量"><input id="masterGainNumber" class="number-input" type="number" min="-60" max="0" step="1" value="-24" data-number-for="masterGain" aria-label="全体音量の数値">
+</div>
+</div>
+<div class="transport">
+<button id="prepareAudio" class="secondary">機器確認</button><button id="startAssist" class="primary">開始</button><button id="muteAssist" class="danger" disabled>停止</button>
+</div>
+</div>
+<p id="audioMessage" class="inline-message" aria-live="polite">
+ヘッドホンで使用してください。開始するまでマイクは使いません。
+</p>
+</div>
+<section id="trialBar" class="trial-bar" aria-label="比較の進行" hidden>
+<div>
+<strong id="trialBarTitle"></strong>
+<p id="trialDifference">
+</p>
+</div>
+<button id="trialRate" class="secondary">感想を記録</button><button id="trialAdvance" class="primary">次の条件</button><button id="trialFinish" class="text-btn">比較を終了</button>
+</section>
+<div class="workspace-meta">
+<span id="conditionName">未保存の設定</span><label class="lock"><input id="settingLock" type="checkbox">設定をロック</label><button class="info-button" type="button" data-info="lock" aria-label="設定ロックの説明" aria-expanded="false">i</button>
+</div>
+<div class="assist-layout">
+<section class="panel details" id="detailsPanel">
+<div class="panel-head">
+<h2>
+加工音声
+</h2>
+<button class="text-btn" id="applyPreset">2系統の例を適用</button>
+</div>
+<div class="branch-grid">
+<fieldset class="branch" id="branchAPanel">
+<legend><span class="branch-letter">A</span> 加工音声 A <button class="info-button" type="button" data-info="branch" aria-label="加工音声A/Bの説明" aria-expanded="false">i</button></legend><label class="toggle branch-toggle"><input id="branchAEnabled" type="checkbox" checked>有効</label>
+<div class="control">
+<div class="control-heading">
+<label for="delayA">追加遅延</label><button class="info-button" type="button" data-info="delay" aria-label="追加遅延の説明" aria-expanded="false">i</button><output id="delayAValue" for="delayA delayANumber">50 ms</output>
+</div>
+<div class="range-input">
+<input id="delayA" type="range" min="0" max="300" value="50" step="1" aria-label="追加遅延 A"><input id="delayANumber" class="number-input" type="number" min="0" max="300" step="1" value="50" data-number-for="delayA" aria-label="追加遅延 Aの数値">
+</div>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="pitchA">音程</label><button class="info-button" type="button" data-info="pitch" aria-label="音程の説明" aria-expanded="false">i</button><output id="pitchAValue" for="pitchA pitchANumber">0 半音</output>
+</div>
+<div class="range-input">
+<input id="pitchA" type="range" min="-12" max="12" value="0" step="0.5" aria-label="音程 A"><input id="pitchANumber" class="number-input" type="number" min="-12" max="12" step="0.5" value="0" data-number-for="pitchA" aria-label="音程 Aの数値">
+</div>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="gainA">相対ゲイン</label><button class="info-button" type="button" data-info="gain" aria-label="相対ゲインの説明" aria-expanded="false">i</button><output id="gainAValue" for="gainA gainANumber">0 dB</output>
+</div>
+<div class="range-input">
+<input id="gainA" type="range" min="-60" max="0" value="0" step="1" aria-label="相対ゲイン A"><input id="gainANumber" class="number-input" type="number" min="-60" max="0" step="1" value="0" data-number-for="gainA" aria-label="相対ゲイン Aの数値">
+</div>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="panA">出力</label><button class="info-button" type="button" data-info="pan" aria-label="左右の出力の説明" aria-expanded="false">i</button>
+</div>
+<select id="panA"><option value="both">両耳</option><option value="left">左のみ</option><option value="right">右のみ</option></select>
+</div>
+</fieldset>
+<fieldset class="branch" id="branchBPanel">
+<legend><span class="branch-letter">B</span> 加工音声 B <button class="info-button" type="button" data-info="branch" aria-label="加工音声A/Bの説明" aria-expanded="false">i</button></legend><label class="toggle branch-toggle"><input id="branchBEnabled" type="checkbox" >有効</label>
+<div class="control">
+<div class="control-heading">
+<label for="delayB">追加遅延</label><button class="info-button" type="button" data-info="delay" aria-label="追加遅延の説明" aria-expanded="false">i</button><output id="delayBValue" for="delayB delayBNumber">200 ms</output>
+</div>
+<div class="range-input">
+<input id="delayB" type="range" min="0" max="300" value="200" step="1" aria-label="追加遅延 B"><input id="delayBNumber" class="number-input" type="number" min="0" max="300" step="1" value="200" data-number-for="delayB" aria-label="追加遅延 Bの数値">
+</div>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="pitchB">音程</label><button class="info-button" type="button" data-info="pitch" aria-label="音程の説明" aria-expanded="false">i</button><output id="pitchBValue" for="pitchB pitchBNumber">0 半音</output>
+</div>
+<div class="range-input">
+<input id="pitchB" type="range" min="-12" max="12" value="0" step="0.5" aria-label="音程 B"><input id="pitchBNumber" class="number-input" type="number" min="-12" max="12" step="0.5" value="0" data-number-for="pitchB" aria-label="音程 Bの数値">
+</div>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="gainB">相対ゲイン</label><button class="info-button" type="button" data-info="gain" aria-label="相対ゲインの説明" aria-expanded="false">i</button><output id="gainBValue" for="gainB gainBNumber">-6 dB</output>
+</div>
+<div class="range-input">
+<input id="gainB" type="range" min="-60" max="0" value="-6" step="1" aria-label="相対ゲイン B"><input id="gainBNumber" class="number-input" type="number" min="-60" max="0" step="1" value="-6" data-number-for="gainB" aria-label="相対ゲイン Bの数値">
+</div>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="panB">出力</label><button class="info-button" type="button" data-info="pan" aria-label="左右の出力の説明" aria-expanded="false">i</button>
+</div>
+<select id="panB"><option value="both">両耳</option><option value="left">左のみ</option><option value="right">右のみ</option></select>
+</div>
+</fieldset>
+</div>
+<p id="pitchSupport" class="capability-message" role="status">
+</p>
+</section>
+<div class="module-grid">
+<section class="panel module">
+<div class="panel-head">
+<h2>
+マスキング <button class="info-button" type="button" data-info="masking" aria-label="マスキングの説明" aria-expanded="false">i</button>
+</h2>
+<label class="toggle"><input id="maskingEnabled" type="checkbox">有効</label>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="maskingType">ノイズ</label><button class="info-button" type="button" data-info="noise" aria-label="ノイズの種類の説明" aria-expanded="false">i</button>
+</div>
+<select id="maskingType"><option value="white">ホワイト</option><option value="pink">ピンク</option><option value="brown">ブラウン</option></select>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="maskingFilter">周波数調整</label><button class="info-button" type="button" data-info="filter" aria-label="周波数調整の説明" aria-expanded="false">i</button>
+</div>
+<select id="maskingFilter"><option value="none">なし</option><option value="lowpass">高域を抑える</option><option value="highpass">低域を抑える</option></select>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="maskingGain">ノイズ音量</label><button class="info-button" type="button" data-info="gain" aria-label="相対ゲインの説明" aria-expanded="false">i</button><output id="maskingGainValue" for="maskingGain maskingGainNumber">-42 dB</output>
+</div>
+<div class="range-input">
+<input id="maskingGain" type="range" min="-60" max="-12" value="-42" step="1" aria-label="ノイズ音量"><input id="maskingGainNumber" class="number-input" type="number" min="-60" max="-12" step="1" value="-42" data-number-for="maskingGain" aria-label="ノイズ音量の数値">
+</div>
+</div>
+</section>
+<section class="panel module">
+<div class="panel-head">
+<h2>
+自声モニター <button class="info-button" type="button" data-info="direct" aria-label="自声モニターの説明" aria-expanded="false">i</button>
+</h2>
+<label class="toggle"><input id="directEnabled" type="checkbox">有効</label>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="directGain">相対ゲイン</label><button class="info-button" type="button" data-info="gain" aria-label="相対ゲインの説明" aria-expanded="false">i</button><output id="directGainValue" for="directGain directGainNumber">-18 dB</output>
+</div>
+<div class="range-input">
+<input id="directGain" type="range" min="-60" max="0" value="-18" step="1" aria-label="相対ゲイン"><input id="directGainNumber" class="number-input" type="number" min="-60" max="0" step="1" value="-18" data-number-for="directGain" aria-label="相対ゲインの数値">
+</div>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="directPan">出力</label><button class="info-button" type="button" data-info="pan" aria-label="左右の出力の説明" aria-expanded="false">i</button>
+</div>
+<select id="directPan"><option value="both">両耳</option><option value="left">左のみ</option><option value="right">右のみ</option></select>
+</div>
+<p class="module-summary">
+音程・追加遅延の加工なし
+</p>
+</section>
+<section class="panel module rhythm">
+<div class="panel-head">
+<h2>
+メトロノーム <button class="info-button" type="button" data-info="metro" aria-label="メトロノームの説明" aria-expanded="false">i</button>
+</h2>
+<label class="toggle"><input id="metroEnabled" type="checkbox">有効</label>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="bpm">テンポ</label><button class="info-button" type="button" data-info="bpm" aria-label="BPMの説明" aria-expanded="false">i</button><output id="bpmValue" for="bpm bpmNumber">60 BPM</output>
+</div>
+<div class="range-input">
+<input id="bpm" type="range" min="30" max="180" value="60" step="1" aria-label="テンポ"><input id="bpmNumber" class="number-input" type="number" min="30" max="180" step="1" value="60" data-number-for="bpm" aria-label="テンポの数値">
+</div>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="metroType">表示</label><button class="info-button" type="button" data-info="metro" aria-label="メトロノームの説明" aria-expanded="false">i</button>
+</div>
+<select id="metroType"><option value="visual">画面のみ</option><option value="sound">音のみ</option><option value="both">音と画面</option></select>
+</div>
+<div id="pulse" class="pulse" aria-label="拍の表示">
+</div>
+</section>
+</div>
+<div class="workspace-footer">
+<p id="conditionSummary">
+</p>
+<button id="recordUse" class="secondary goto" data-target="history">振り返り</button><button id="openCompact" class="secondary">小型表示</button><button class="info-button" type="button" data-info="compact" aria-label="小型表示の説明" aria-expanded="false">i</button>
+</div>
+<details class="processing-info">
+<summary>処理情報</summary>
+<div class="meter-row">
+<div>
+<strong>追加遅延</strong><span id="latencyReadout"></span>
+</div>
+<div>
+<strong>音程処理バッファ</strong><span id="pitchLatencyReadout"></span>
+</div>
+<div>
+<strong>総遅延</strong><span>未測定</span>
+</div>
+<div>
+<strong>最終出力</strong><span>−3 dBFS リミッター</span>
+</div>
+</div>
+</details>
+</div>
+</section>
+<section id="page-home" class="page" aria-labelledby="homeTitle">
+<div class="page-heading">
+<div>
+<p class="eyebrow">
+PRESETS
+</p>
+<h1 id="homeTitle">
+保存設定
+</h1>
+</div>
+<button class="secondary goto" data-target="assist">操作に戻る</button>
+</div>
+<p class="lead">
+自分の設定を、使う場面に合わせて保存できます。
+</p>
+<h2>
+自分の設定
+</h2>
+<div id="profileCards" class="profile-cards">
+</div>
+<section class="panel sample-section">
+<h2>
+サンプル
+</h2>
+<p>
+動作を試すための例です。自分に最適な値を示すものではありません。
+</p>
+<button class="secondary" data-sample="meeting">遅延を試す例</button><button class="secondary" data-sample="presentation">原稿の読み上げの例</button><button class="text-btn" data-help="guide-start">使い方を確認する</button>
+</section>
+</section>
+<section id="page-script" class="page" aria-labelledby="scriptTitle">
+<div class="page-heading">
+<div>
+<p class="eyebrow">
+SCRIPT & TTS
+</p>
+<h1 id="scriptTitle">
+原稿・TTS <button class="info-button" type="button" data-info="tts" aria-label="TTS・斉読の説明" aria-expanded="false">i</button>
+</h1>
+</div>
+<button id="readingView" class="secondary" aria-pressed="false">原稿表示</button>
+</div>
+<div class="script-layout">
+<section class="panel editor">
+<div class="panel-head">
+<h2>
+原稿
+</h2>
+<span id="charCount">0 / 50,000 文字</span>
+</div>
+<label class="sr-only" for="scriptText">原稿本文</label><textarea id="scriptText" maxlength="50000" placeholder="原稿を貼り付けるか、TXTを読み込んでください。"></textarea>
+<div class="editor-actions">
+<button id="splitScript" class="primary">句に分ける</button><button class="info-button" type="button" data-info="split" aria-label="句分割の説明" aria-expanded="false">i</button><button id="saveScript" class="secondary">原稿を保存</button><button id="txtImportButton" class="secondary">TXTを読み込む</button><button id="sampleScript" class="text-btn">例文</button><input id="txtImport" type="file" accept=".txt,text/plain" hidden>
+</div>
+<p id="scriptDirty" class="inline-message" role="status">
+</p>
+</section>
+<section class="panel phrase-panel">
+<div class="panel-head">
+<h2>
+読み上げ
+</h2>
+<label>音声<select id="voiceSelect"><option>音声を読み込み中…</option></select></label>
+</div>
+<p class="tts-output-note">
+TTSはOS／ブラウザの既定出力を使います。
+</p>
+<div id="phraseList" class="phrase-list">
+</div>
+<div class="player">
+<p>
+<strong>現在の句</strong><span id="currentPhrase">—</span>
+</p>
+<p class="next">
+<strong>次の句</strong><span id="nextPhrase">—</span>
+</p>
+<div class="player-actions">
+<button id="previousPhrase" class="secondary">句頭</button><button id="playPhrase" class="primary">再生</button><button id="repeatPhrase" class="secondary">繰り返す</button><button id="pausePhrase" class="secondary">停止</button><button id="nextPhraseBtn" class="secondary">次の句</button>
+</div>
+<div class="tts-controls">
+<div class="control">
+<div class="control-heading">
+<label for="ttsRate">読み上げ速度</label><button class="info-button" type="button" data-info="rate" aria-label="読み上げ速度の説明" aria-expanded="false">i</button><output id="ttsRateValue" for="ttsRate ttsRateNumber">1.2 倍</output>
+</div>
+<div class="range-input">
+<input id="ttsRate" type="range" min="0.5" max="2" value="1.2" step="0.05" aria-label="読み上げ速度"><input id="ttsRateNumber" class="number-input" type="number" min="0.5" max="2" step="0.05" value="1.2" data-number-for="ttsRate" aria-label="読み上げ速度の数値">
+</div>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="choralCountdown">開始カウントダウン</label><button class="info-button" type="button" data-info="countdown" aria-label="開始カウントダウンの説明" aria-expanded="false">i</button><output id="choralCountdownValue" for="choralCountdown choralCountdownNumber">0 秒</output>
+</div>
+<div class="range-input">
+<input id="choralCountdown" type="range" min="0" max="5" value="0" step="1" aria-label="開始カウントダウン"><input id="choralCountdownNumber" class="number-input" type="number" min="0" max="5" step="1" value="0" data-number-for="choralCountdown" aria-label="開始カウントダウンの数値">
+</div>
+</div>
+<div class="control">
+<div class="control-heading">
+<label for="phrasePause">句間休止</label><button class="info-button" type="button" data-info="pause" aria-label="句間休止の説明" aria-expanded="false">i</button><output id="pauseValue" for="phrasePause phrasePauseNumber">0 秒</output>
+</div>
+<div class="range-input">
+<input id="phrasePause" type="range" min="0" max="5" value="0" step="0.1" aria-label="句間休止"><input id="phrasePauseNumber" class="number-input" type="number" min="0" max="5" step="0.1" value="0" data-number-for="phrasePause" aria-label="句間休止の数値">
+</div>
+</div>
+<div class="toggle-row">
+<label class="toggle"><input id="continuousChoral" type="checkbox">連続再生</label><button class="info-button" type="button" data-info="continuous" aria-label="連続再生の説明" aria-expanded="false">i</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</section>
+<section id="page-history" class="page" aria-labelledby="historyTitle">
+<div class="page-heading">
+<div>
+<p class="eyebrow">
+REFLECTION & COMPARISON
+</p>
+<h1 id="historyTitle">
+記録・比較
+</h1>
+</div>
+<button class="text-btn" data-help="guide-save">記録の使い方 ↗</button>
+</div>
+<section class="panel reflection-panel">
+<div class="panel-head">
+<h2>
+今回の振り返り <button class="info-button" type="button" data-info="rating" aria-label="振り返りの説明" aria-expanded="false">i</button>
+</h2>
+<span class="optional">入力は任意</span>
+</div>
+<p id="reflectionContext">
+</p>
+<label>場面<select id="sessionScene"><option>通話・会議</option><option>会話</option><option>発表</option><option>短い試用</option><option>その他</option></select></label>
+<div class="rating-grid">
+<label>話す負担 <output id="effortOut">—</output><input id="effort" type="range" min="1" max="9" value="5"><small>1: 負担なし ／ 9: とても大きい</small></label><label>自然さ <output id="naturalnessOut">—</output><input id="naturalness" type="range" min="1" max="9" value="5"><small>1: とても不自然 ／ 9: とても自然</small></label><label>次も使う<select id="wouldUse"><option value="">未回答</option><option value="yes">はい</option><option value="unsure">判断できない</option><option value="no">いいえ</option></select></label>
+</div>
+<label>メモ<textarea id="sessionNote" rows="2" maxlength="10000" placeholder="気付いたこと（任意）"></textarea></label>
+<div class="actions">
+<button id="saveReflection" class="primary">記録を保存</button><button id="skipReflection" class="text-btn">記録しない</button>
+</div>
+</section>
+<section class="panel history-panel">
+<div class="panel-head">
+<h2>
+使用記録
+</h2>
+<button id="exportData" class="text-btn">バックアップ</button>
+</div>
+<div class="history-filters">
+<label>場面<select id="historyScene"><option value="">すべて</option></select></label><label>設定<select id="historyProfile"><option value="">すべて</option></select></label><span id="historySummary"></span>
+</div>
+<div id="historyList" class="history-list">
+</div>
+</section>
+</section>
+<section id="page-settings" class="page" aria-labelledby="settingsTitle">
+<p class="eyebrow">
+機器・データ
+</p>
+<h1 id="settingsTitle">
+機器・データ
+</h1>
+<button class="text-btn" data-help="guide-faq">音が出ないとき・プライバシー</button>
+<div class="settings-grid">
+<div class="panel">
+<h2>
+機器
+</h2>
+<p id="deviceSummary">
+音声補助の操作バーでマイクと補助音の出力先を選択できます。
+</p>
+<button class="secondary goto" data-target="assist">機器の選択へ</button>
+<p class="hint">
+Web版では出力先の切替に対応しないブラウザがあります。その場合はOSまたはブラウザ側でヘッドホンを選んでください。
+</p>
+<button id="refreshDevices" class="secondary">機器一覧を更新</button>
+</div>
+<div class="panel">
+<h2>
+通話前チェック
+</h2>
+<label class="check"><input id="checkedHeadphones" type="checkbox"> ヘッドホンを装着した</label><label class="check"><input id="checkedMic" type="checkbox"> 通話アプリの入力が物理マイクになっている</label><label class="check"><input id="checkedShare" type="checkbox"> 「コンピューターの音声を共有」はOFFにした</label>
+<p class="hint">
+このアプリでは通話アプリの設定を確認できません。各項目を自分で確認してください。
+</p>
+</div>
+<div class="panel">
+<h2>
+データ <button class="info-button" type="button" data-info="privacy" aria-label="データ保存とプライバシーの説明" aria-expanded="false">i</button>
+</h2>
+<p>
+設定・原稿・履歴はこのブラウザのローカル保存領域に保存されます。
+</p>
+<button id="backupData" class="secondary">バックアップを書き出す</button><button id="restoreDataButton" class="secondary" type="button">バックアップを復元</button><input id="restoreData" type="file" accept="application/json" hidden><button id="clearData" class="danger-outline">この端末のデータを削除</button>
+</div>
+<div class="panel">
+<h2>
+ショートカット
+</h2>
+<dl>
+<dt>
+Esc / Ctrl + Alt + F12
+</dt>
+<dd>
+補助音を緊急停止（説明・保存・比較のEscは閉じるだけ）
+</dd>
+<dt>
+Ctrl + Alt + F9
+</dt>
+<dd>
+原稿を再生 / 停止
+</dd>
+<dt>
+Ctrl + Alt + F10
+</dt>
+<dd>
+原稿の次の句
+</dd>
+<dt>
+Ctrl + Alt + F8
+</dt>
+<dd>
+原稿の句頭へ戻る
+</dd>
+</dl>
+<p class="hint">
+ショートカットは、このタブにフォーカスがあるときだけ有効です。Zoom・Teamsや別のタブを操作中は使えません。緊急停止ボタンとCtrl+Alt+F12はいつでも、Escは説明やダイアログを閉じた状態で緊急停止します。同じブラウザ・同じサイトの他のタブにも停止を伝えます。音声エラーによる自動停止は、このタブだけを停止します。別のブラウザやプライベートウィンドウには伝わりません。
+</p>
+</div>
+</div>
+</section>
+<section id="page-guide" class="page guide-page" aria-labelledby="guideTitle">
+<div class="page-heading">
+<div>
+<p class="eyebrow">
+GUIDE
+</p>
+<h1 id="guideTitle">
+使い方・仕組み
+</h1>
+</div>
+<button class="secondary" id="returnFromGuide">操作に戻る</button>
+</div>
+<p class="lead">
+遅延・音程・リズムを調整し、話しやすさや負担の変化を試せます。アカウントの登録や録音は不要です。
+</p>
+<section class="panel guide-section" id="guide-intro">
+<p class="eyebrow">
+はじめて使う方へ
+</p>
+<h2>
+自分が聞く音を、話すときの補助にする
+</h2>
+<p>
+StutterSuiteは、自分の声の聞こえ方を変えたり、一定の拍や原稿の読み上げを使ったりする道具です。吃音や音声処理の専門知識がなくても、下の手順で使い方を確認できます。
+</p>
+<p>
+補助音は自分のヘッドホンに届きます。通話相手に送る声は通話アプリが扱います。このアプリで補助音を止めても、通話アプリのマイクはミュートされません。
+</p>
+<p>
+音声は端末内で処理し、送信・録音保存しません。使い心地は、同じ人でも場面によって変わることがあります。短く試し、負担や自然さも含めて、次に使いたい設定を選べます。
+</p>
+<div class="actions">
+<button class="primary" id="startWalkthrough">案内を見ながら試す</button><button class="secondary goto" data-target="assist">音声補助を開く</button>
+</div>
+</section>
+<nav class="guide-toc" aria-label="ガイドの目次">
+<a href="#guide-start">使用手順</a><a href="#guide-feedback">遅延・音程</a><a href="#guide-tools">ノイズ・リズム</a><a href="#guide-script">原稿・斉読</a><a href="#guide-save">保存・比較</a><a href="#guide-science">仕組みと研究結果</a><a href="#guide-faq">よくある質問</a>
+</nav>
+<section class="panel guide-section" id="guide-start" aria-labelledby="guideStartTitle">
+<h2 id="guideStartTitle">
+使い始めるまでの5ステップ
+</h2>
+<ol class="guide-steps">
+<li>
+<strong>ヘッドホンを接続する</strong>
+<p>
+有線のヘッドホンやヘッドセットを接続し、「音声補助」の操作バーでマイクと補助音の出力先を選んでください。スピーカーを使うと、再生音がマイクに入り、ハウリングが発生する場合があります。
+</p>
+<button class="secondary goto" data-target="settings">機器・データへ</button>
+</li>
+<li>
+<strong>補助なしの状態を確認する</strong>
+<p>
+短い文章や自己紹介を話し、普段の話しやすさや負担を確認します。録音や評価の入力は不要です。
+</p>
+</li>
+<li>
+<strong>加工音声Aを調整する</strong>
+<p>
+「音声補助」で加工音声Aを有効にし、追加遅延と音程を調整します。遅延だけを試す場合は音程を0半音に、音程だけを試す場合は追加遅延を0 msに設定してください。最初はAのみを使い、小さい音量で開始します。
+</p>
+<button class="secondary goto" data-target="assist">補助を準備する</button>
+</li>
+<li>
+<strong>同じ内容で比較する</strong>
+<p>
+30秒程度を目安に、無理のない時間で試してください。話しやすさ、自然さ、疲れや不快感を確認し、合わない場合は「停止」または「すべて停止」を押します。緊急停止ボタンやCtrl+Alt+F12、説明やダイアログを閉じた状態でEscキーでも停止できます。
+</p>
+</li>
+<li>
+<strong>使いやすい設定を保存する</strong>
+<p>
+「別名で保存」で、使用する場面に応じた名前を付けます。通話で使う前に、補助音が相手に聞こえないことを通話アプリ側でも確認してください。
+</p>
+</li>
+</ol>
+<p class="hint">
+初期値は動作を試すための設定です。個人に最適な値や臨床上の推奨値ではなく、音量や加工を強めても効果が増すとは限りません。
+</p>
+</section>
+<section class="panel guide-section" id="guide-feedback" aria-labelledby="guideFeedbackTitle">
+<h2 id="guideFeedbackTitle">
+追加遅延と音程の調整（DAF・FAF）
+</h2>
+<div class="guide-flow" aria-label="音声の経路">
+<span>マイク入力</span><span aria-hidden="true">→</span><span>端末内で音声を加工</span><span aria-hidden="true">→</span><span>ヘッドホンで再生</span>
+</div>
+<dl class="guide-definitions">
+<dt>
+追加遅延：DAF（遅延フィードバック）
+</dt>
+<dd>
+自分の声を遅らせて再生します。50 msは0.05秒の追加遅延です。値を大きくすると遅延も増えますが、話しにくくなる場合があります。
+</dd>
+<dt>
+音程：FAF（音程を変えるフィードバック）
+</dt>
+<dd>
+自分の声の高さを変えて再生します。正の値で高く、負の値で低くなり、12半音で1オクターブ変わります。0半音では音程を変更しません。発話や再生の速度は変わりません。
+</dd>
+<dt>
+全体音量と相対ゲイン
+</dt>
+<dd>
+全体音量は補助音をまとめて小さくする設定です。相対ゲインはAやBなど、それぞれの経路の声を小さくする設定です。例えばBだけを小さく聞きたい時はBの相対ゲインを下げます。dBはこのアプリ内の相対的な音量を表し、耳元の音圧を測定する値ではありません。
+</dd>
+<dt>
+遅延と音程の併用
+</dt>
+<dd>
+両方の値を設定すると、DAFとFAFを併用できます。単独で使う場合より効果が高いとは限らないため、それぞれの状態と比較してください。
+</dd>
+<dt>
+加工音声A・B
+</dt>
+<dd>
+同じマイク入力から、設定の異なる2系統の加工音声を作ります。追加遅延、音程、相対ゲイン、左右の出力を個別に調整できます。ノイズや自声モニターも同じ画面で組み合わせられます。
+</dd>
+</dl>
+<p>
+<strong>ひとつずつ試す例：</strong>遅延だけを試す場合はAを有効、音程を0半音、Bと他の補助をオフにします。音程だけを試す場合は追加遅延を0 msにします。値は試用の例であり、本人に最適な値ではありません。説明の中の「この設定を表示」で対応する操作箇所を確認できます。
+</p>
+<p>
+<strong>操作手順：</strong>加工音声を有効にする → スライダーで追加遅延・音程・音量を調整する → 「開始」を押す。保存済みの設定を読み込むと補助は停止します。個別の設定変更は、動作中の補助にも反映されます。
+</p>
+<p>
+<strong>補助を使わない場合：</strong>「停止」または「すべて停止」を押すか、加工音声A・B、ノイズ、自声モニター、メトロノームの「有効」をすべて解除してください。
+</p>
+<p>
+<strong>遅延表示について：</strong>追加遅延とは別に、ブラウザ・機器・音程処理による遅延が発生します。追加遅延が0 msでも、実際の遅延はゼロではありません。「音程処理バッファ」は処理に必要な時間の目安で、耳元に届くまでの総遅延は未測定です。
+</p>
+<p>
+<strong>研究結果：</strong>FAFでは、12人を対象とした音読研究で吃音頻度の低下が報告されています。ただし、全員への効果、自由会話での効果、長期的な効果を示すものではありません。DAF単独の2026年のメタ分析では、全体として有意な改善は確認されませんでした。<a href="https://pubmed.ncbi.nlm.nih.gov/8729926/" target="_blank" rel="noopener noreferrer">FAFの研究（1996）</a> ／ <a href="https://pubmed.ncbi.nlm.nih.gov/42340070/" target="_blank" rel="noopener noreferrer">DAFのメタ分析（2026）</a>
+</p>
+<button class="secondary goto" data-target="assist">音声補助へ</button>
+</section>
+<section class="panel guide-section" id="guide-tools" aria-labelledby="guideToolsTitle">
+<h2 id="guideToolsTitle">
+ノイズ・自声モニター・メトロノーム
+</h2>
+<details>
+<summary>ノイズ（マスキング）の使い方</summary>
+<p>
+ノイズを重ねて、自分の声の聞こえ方を変えます。ホワイトノイズは広い周波数帯を含み、ピンクノイズとブラウンノイズは低域が相対的に強く聞こえます。周波数調整では、高域または低域を抑えられます。
+</p>
+<p>
+「有効」を選び、小さい音量から試してください。自分の声を完全に消そうとして音量を上げないでください。特定のマスキング条件で短期的な変化を報告した研究はありますが、本アプリのノイズで同じ効果が得られるかは未検証です。
+</p>
+</details>
+<details>
+<summary>自声モニターの使い方</summary>
+<p>
+遅延や音程変更を加えず、自分の声をヘッドホンに再生する機能です。ブラウザや機器による遅延は発生します。相対ゲインでこの経路の音量を調整し、補助音量で全体の音量を調整します。
+</p>
+<p>
+自分の声を確認するための機能です。単独で吃音を改善する効果は検証されていません。加工音声と併用すると、聞こえ方が変わります。
+</p>
+</details>
+<details>
+<summary>メトロノームの使い方</summary>
+<p>
+一定の拍に合わせて、発話のタイミングを調整します。BPMは1分間の拍数で、60 BPMは1秒に1拍です。画面のみ、音のみ、音と画面の3種類から選べます。
+</p>
+<p>
+「有効」を選び、無理なく合わせられるテンポで試してください。拍に合わせて話す研究と、画面の点滅を見るだけの使い方は条件が異なります。流暢さに加え、自然さや負担も確認してください。
+</p>
+</details>
+<p class="hint">
+マスキング・斉読・リズムを使った音読研究では、吃音頻度、自然さ、負担の変化は一様ではありません。本アプリは研究の機器・音量・手順を再現したものではありません。<a href="https://pubmed.ncbi.nlm.nih.gov/22365886/" target="_blank" rel="noopener noreferrer">Inghamら（2012）</a>
+</p>
+</section>
+<section class="panel guide-section" id="guide-script" aria-labelledby="guideScriptTitle">
+<h2 id="guideScriptTitle">
+原稿の読み上げに合わせて話す（斉読）
+</h2>
+<p>
+斉読とは、別の音声とほぼ同時に、同じ内容を話すことです。読み上げ音声を聞きながら、原稿の内容や話すタイミングを確認できます。「原稿表示」で再生に集中する表示へ切り替えられます。原稿を編集した後は、句を更新してから再生してください。
+</p>
+<ol>
+<li>
+原稿を貼り付けるかTXTファイルを読み込み、「句に分ける」を押します。
+</li>
+<li>
+句、音声、読み上げ速度を選び、「再生」を押します。読み上げに合わせて自分でも話します。
+</li>
+<li>
+「句頭へ」「この句を繰り返す」「次の句」で再生位置を操作します。「停止」で読み上げを停止できます。
+</li>
+<li>
+連続再生を有効にすると、次の句へ自動で進みます。開始カウントダウンと句間休止で、準備の時間を調整できます。
+</li>
+</ol>
+<p>
+読み上げ速度の設定はTTSにのみ適用され、加工音声の音程設定には影響しません。停止後に再生すると句頭から始まります。発話に合わせて原稿の位置を自動追跡する機能はありません。
+</p>
+<p>
+<strong>出力先について：</strong>TTSには、ブラウザが端末内の音声として識別した読み上げ音声だけを使います。出力先はOS／ブラウザの既定の出力先です。このアプリで指定した補助音の出力先とは異なります。端末内の音声が利用できない場合は再生せず、クラウド音声には切り替えません。
+</p>
+<p>
+<strong>研究結果：</strong>TTSや録音した自分の声との斉読は、原稿を使う模擬発表で研究されています。このOSS版はTTSのみを提供し、自声の録音・保存は行いません。この研究だけでは、自由会話や日本語での効果は判断できません。<a href="https://doi.org/10.1016/j.jfludis.2025.106168" target="_blank" rel="noopener noreferrer">模擬発表の探索的研究（2025）</a>
+</p>
+<button class="secondary goto" data-target="script">原稿・TTSへ</button>
+</section>
+<section class="panel guide-section" id="guide-save" aria-labelledby="guideSaveTitle">
+<h2 id="guideSaveTitle">
+設定の保存・比較・操作
+</h2>
+<dl class="guide-definitions">
+<dt>
+設定の保存
+</dt>
+<dd>
+遅延・音程・ノイズ・リズムなどを、場面に応じた名前で保存できます。選択中の設定は「更新」で置き換え、「別名で保存」で新しく追加できます。「元に戻す」は編集前の値に戻します。設定を読み込んでも、マイクや補助音は自動で開始しません。
+</dd>
+<dt>
+条件の比較
+</dt>
+<dd>
+音声補助の「比較」で、保存設定・編集前・編集中・補助なしから2つの条件を選びます。進行と差分は操作画面に表示されます。順序をランダムにすることもできます。各条件を読み込んだ後、自分で補助を開始してください。試した結果は任意で記録でき、自動採点や効果の判定は行いません。
+</dd>
+<dt>
+振り返りの記録
+</dt>
+<dd>
+話す負担、自然さ、次回も使いたいか、メモを記録できます。各項目の入力は任意です。使用開始時の設定と、途中で変えた設定も一緒に保存します。保存するまで、このタブ内の使用記録は一時的です。複数回の使用は「記録する使用」で選べます。保存後は場面や設定で絞り込み、開始条件を読み戻せます。同じ場面・使用内容・条件で、途中に設定変更のない記録だけをまとめます。診断用の評価尺度ではありません。
+</dd>
+<dt>
+小型パネルと設定ロック
+</dt>
+<dd>
+小型パネルでは、音量・原稿再生・停止を操作できます。「設定をロック」を有効にすると、詳細設定の誤操作を防げます。ショートカットは、このアプリの画面を操作している間だけ有効です。通話中も緊急停止ボタンを押せる位置に画面を置いてください。
+</dd>
+<dt>
+バックアップ
+</dt>
+<dd>
+設定・原稿・履歴は、このサイトのブラウザ保存領域に保存されます。JSONを書き出すと、別のブラウザでも復元できます。原稿とメモが含まれ、暗号化されないため、共有する場合は内容を確認してください。
+</dd>
+</dl>
+</section>
+<section class="panel guide-section" id="guide-science" aria-labelledby="guideScienceTitle">
+<h2 id="guideScienceTitle">
+音声やリズムを変える仕組みと研究結果
+</h2>
+<p>
+発話中は、口を動かすと同時に自分の声を聞いています。聞こえる音声を変えたり、別の音声や拍に合わせたりすることで、話し方が変化する場合があります。StutterSuiteでは、遅延・音程・リズムを調整し、自分にとって使いやすい条件を試せます。
+</p>
+<div class="guide-evidence">
+<div>
+<h3>
+研究で観察された結果
+</h3>
+<p>
+FAF、斉読、リズムなどの条件で、短期的に吃音が減少した報告があります。ただし、結果は個人や条件によって異なります。DAF単独のメタ分析では、全体として有意な改善は確認されていません。
+</p>
+</div>
+<div>
+<h3>
+仕組みに関する仮説
+</h3>
+<p>
+自声の変化が聴覚と発話運動の連携に影響する、別の音声や拍が発話の開始やタイミングを支える、といった仮説があります。FAFの効果を「別人と話す効果」と断定することや、吃音の原因を単一の脳機能で説明することはできません。
+</p>
+</div>
+</div>
+<p>
+感覚フィードバックの役割には複数の理論があります。斉読の効果を外部リズムだけで説明する仮説と、矛盾する結果を報告した研究もあります。<a href="https://pubmed.ncbi.nlm.nih.gov/37216145/" target="_blank" rel="noopener noreferrer">感覚フィードバックのレビュー</a> ／ <a href="https://pubmed.ncbi.nlm.nih.gov/39772710/" target="_blank" rel="noopener noreferrer">斉読とタイミングの研究</a>
+</p>
+<p>
+<strong>本アプリの検証範囲：</strong>研究で得られた短期的な結果は、本アプリの治療効果、通話中の効果、長期的な改善を証明するものではありません。吃音の回数だけでなく、負担や自然さ、伝えたい内容を話せたかも確認してください。合わない場合は補助を停止できます。
+</p>
+<p class="hint">
+出典の確認日：2026-10-08。リンク先の抄録と取得できた本文を基に要約しています。研究の対象・課題・装置は本アプリと異なります。本アプリは診断や治療を行うものではなく、効果を保証しません。
+</p>
+</section>
+<section class="panel guide-section" id="guide-faq" aria-labelledby="guideFaqTitle">
+<h2 id="guideFaqTitle">
+よくある質問・プライバシー
+</h2>
+<details>
+<summary>音声は収集・保存されますか？</summary>
+<p>
+マイクの使用許可を得た後、端末内で音声を加工し、ヘッドホンに再生します。処理に必要な短い音声データはメモリ内にのみ保持し、外部への送信や録音・保存は行いません。補助を停止すると、マイクを解放して処理を終了します。設定・原稿・履歴にも音声データは含まれません。
+</p>
+<p>
+サイトの表示や出典リンクの閲覧には通信が発生しますが、このアプリからマイク音声や原稿を送信する処理はありません。
+</p>
+</details>
+<details>
+<summary>音程を変更できない・補助を開始できない場合</summary>
+<p>
+HTTPSの公開ページまたはlocalhostで、AudioWorkletに対応したブラウザを使用してください。処理ファイルの読み込みに失敗した場合は、ページを再読み込みしてください。音程を変更できない環境でも、追加遅延やノイズは利用できます。音程が0半音の場合は音程処理を行いません。
+</p>
+</details>
+<details>
+<summary>音が出ない・遅延が大きい場合</summary>
+<p>
+マイクの使用許可、入力・出力機器、OSの音量を確認してください。補助音の出力先とTTSの既定の出力先は別です。Bluetooth、機器、ブラウザによる遅延も加わるため、有線機器でも確認してください。画面の遅延表示は、耳元までの実測値ではありません。
+</p>
+</details>
+<details>
+<summary>緊急停止すると通話相手への音声も止まりますか？</summary>
+<p>
+停止するのは、このアプリの補助音・TTSと、このアプリが使用するマイクです。通話アプリのマイクやミュートには影響しません。相手への音声を止める場合は、通話アプリ側でミュートしてください。
+</p>
+</details>
+<details>
+<summary>以前のFAF設定が無効になっている場合</summary>
+<p>
+旧版で失われた音程値は復元できません。「加工音声」の音程を再設定し、保存してください。更新によって補助が自動で開始することはありません。
+</p>
+</details>
+<details>
+<summary>効果を感じない・話しにくい場合</summary>
+<p>
+補助を停止して休んでください。同じ人でも、場面や日によって使いやすさは変わります。不快感を我慢したり、音量を上げ続けたりする必要はありません。
+</p>
+</details>
+</section>
+</section>
+</main>
+<aside id="guideDrawer" class="guide-drawer" aria-label="機能の説明" hidden>
+<div class="drawer-head">
+<div>
+<p class="eyebrow">
+FUNCTION GUIDE
+</p>
+<h2 id="drawerTitle">
+</h2>
+</div>
+<button id="closeDrawer" class="icon-close" aria-label="説明を閉じる">×</button>
+</div>
+<div id="drawerContent">
+</div>
+<div class="drawer-actions">
+<button id="focusControl" class="secondary">この設定を表示</button><button id="readFullGuide" class="text-btn">ガイドで読む ↗</button>
+</div>
+</aside>
+</div>
+<div id="trialModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="trialTitle">
+<div class="modal-card">
+<button class="close" data-close-modal aria-label="閉じる">×</button>
+<p class="eyebrow">
+COMPARISON
+</p>
+<h2 id="trialTitle">
+条件を比較する
+</h2>
+<p>
+補助なし、保存設定、編集前と編集中の条件を比較できます。
+</p>
+<label>条件 A<select id="trialProfileA"></select></label><label>条件 B<select id="trialProfileB"></select></label><label class="toggle"><input id="trialRandomize" type="checkbox">順序をランダムにする</label>
+<div class="trial-step">
+<span id="trialStep"></span><strong id="trialCondition"></strong><button id="trialStartButton" class="primary">比較を開始</button>
+</div>
+<button id="trialNext" class="secondary">次の条件へ</button>
+</div>
+</div>
+<dialog id="profileDialog" aria-labelledby="profileDialogTitle">
+<form id="profileForm">
+<div class="dialog-head">
+<h2 id="profileDialogTitle">
+設定を保存
+</h2>
+<button id="cancelProfileTop" type="button" class="icon-close" aria-label="保存をキャンセル">×</button>
+</div>
+<label>名前<input id="profileName" type="text" maxlength="200" required></label><label>場面<select id="profileScene"><option>通話・会議</option><option>会話</option><option>発表</option><option>短い試用</option><option>その他</option></select></label><label class="check"><input id="profileFavorite" type="checkbox">お気に入り</label>
+<p id="profileDialogMessage" role="status">
+</p>
+<div class="actions">
+<button class="primary" type="submit">保存</button><button id="cancelProfile" class="secondary" type="button">キャンセル</button>
+</div>
+</form>
+</dialog>
+<aside id="compactPanel" class="compact-panel" aria-label="小型パネル" hidden>
+<div class="compact-head">
+<strong>StutterSuite</strong><button id="closeCompact" aria-label="小型パネルを閉じる">×</button>
+</div>
+<p id="compactProfile">
+</p>
+<div class="compact-state">
+<span id="compactAssist"></span><span id="compactTts"></span>
+</div>
+<button id="compactMute" class="danger">すべて停止</button><label>全体音量<input id="compactGain" type="range" min="-60" max="0" value="-24"></label>
+<div id="compactScript">
+<p class="compact-phrase">
+<strong id="compactSource">現在の句:</strong><span id="compactPhrase">—</span>
+</p>
+<label>読み上げ速度 <output id="compactRateValue">1.20 倍</output><input id="compactRate" type="range" min="0.5" max="2" value="1.2" step="0.05"></label>
+<div>
+<button id="compactPrevious" class="secondary">句頭</button><button id="compactPlay" class="primary">再生</button><button id="compactNext" class="secondary">次の句</button>
+</div>
+</div>
+</aside>
+<div id="infoPopover" class="info-popover" role="tooltip" hidden>
+<div class="popover-head">
+<strong id="infoTitle"></strong><button id="closeInfo" class="icon-close" aria-label="説明を閉じる" hidden>×</button>
+</div>
+<p id="infoText">
+</p>
+<button id="infoDetails" class="text-btn" hidden>詳しい説明 →</button>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite">
+</div>
+<script src="audio-engine.js"></script><script src="app.js"></script><script src="workspace.js"></script><script src="compact.js"></script>
 </body>
 </html>
