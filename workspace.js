@@ -38,7 +38,7 @@
   };
   let origin = clone(currentCondition()), originName = activeConditionName, guideReturn = 'assist';
   let anchor = null, pinned = false, showTimer, hideTimer, drawerAnchor = null, drawerHelp = null, returningFocus=false;
-  let saveMode = 'copy', trialSnapshots = {}, comparisonId = '', advancing = false;
+  let saveMode = 'copy', trialSnapshots = {}, trialReturn = null, comparisonId = '', advancing = false;
   let currentSession = null, pendingSessions = [], chosenSession = '', lastSegmentAt = 0;
   const popover = q('#infoPopover');
 
@@ -106,8 +106,23 @@
     if(c.metronome.enabled)branches.push(c.metronome.bpm+' BPM');
     return branches.join(' · ');
   }
+  function syncSettingAvailability(){
+    const starting=!!audio.starting,locked=q('#settingLock').checked;
+    all('#detailsPanel input,#detailsPanel select,#detailsPanel button:not(.info-button),.module-grid input,.module-grid select').forEach(node=>node.disabled=starting||locked||node.dataset.unavailable==='true');
+    all('#masterGain,#ttsRate,#choralCountdown,#phrasePause,#continuousChoral').forEach(node=>node.disabled=starting);
+  }
+  function checkTrialCondition(condition){
+    if(!trial.active||trial.preparing)return;
+    const expected=trialSnapshots[trial.order[trial.index]];
+    if(expected&&!same(condition,{...normalizeCondition(expected),mode:'custom'}))trial.changed=true;
+    if(trial.changed&&currentSession?.session.comparisonId===comparisonId&&currentSession.session.comparisonIndex===trial.index){
+      delete currentSession.session.comparisonId;delete currentSession.session.comparisonIndex;
+      currentSession.name+='（比較条件から変更）';
+    }
+  }
   function sync(){
     const c=currentCondition(),dirty=!same(c,origin),profile=selectedProfile();
+    syncSettingAvailability();checkTrialCondition(c);showTrial();
     const stored=profile&&same({...normalizeCondition(profile.condition),mode:'custom'},c);
     q('#dirtyState').textContent=dirty?'変更あり・未保存':stored?'保存済み':activeProfile.startsWith('sample:')?'サンプル・未保存':activeProfile==='baseline'?'補助なし':'未保存の条件';
     q('#dirtyState').classList.toggle('changed',dirty);q('#revertCondition').disabled=!dirty;
@@ -135,13 +150,12 @@
     number.addEventListener('blur',()=>number.value=range.value);
   });
   q('#settingLock').addEventListener('change',()=>{
-    all('#detailsPanel input,#detailsPanel select,#detailsPanel button:not(.info-button),.module-grid input,.module-grid select').forEach(node=>node.disabled=q('#settingLock').checked||node.dataset.unavailable==='true');
     sync();toast(q('#settingLock').checked?'詳細設定をロックしました。説明・停止・全体音量は操作できます。':'設定のロックを解除しました。');
   });
   q('#revertCondition').onclick=()=>{applyCondition(clone(origin));conditionChanged();sync();toast('編集前の値に戻しました。');};
   q('#inputDevice').addEventListener('change',()=>{sync();if(audio.running)q('#audioMessage').textContent='マイクの変更は、補助を停止して再開すると適用されます。';});
   q('#outputDevice').addEventListener('change',sync);
-  ['masterGain','ttsRate'].forEach(id=>q('#'+id).addEventListener('input',conditionChanged));
+  ['masterGain','ttsRate'].forEach(id=>q('#'+id).addEventListener('input',()=>conditionChanged()));
   all('[data-sample]').forEach(button=>button.onclick=async()=>{await applyProfile('sample:'+button.dataset.sample);go('assist');});
 
   function openSave(mode){
@@ -201,14 +215,20 @@
     sync();
   }
   sessionSelect.onchange=()=>{chosenSession=sessionSelect.value;resetRatings();const target=reflectionTarget();q('#sessionScene').value=target?.session.scene||'短い試用';sync();};
-  function beginSession(kind){
-    if(currentSession){if(currentSession.session.kind==='manual')currentSession.session.kind=kind;else if(currentSession.session.kind!==kind)currentSession.session.kind='combined';sync();return;}
-    const at=new Date().toISOString(),condition=clone(currentCondition());
-    currentSession={name:activeConditionName,condition,session:{id:crypto.randomUUID(),startedAt:at,endedAt:'',kind,reason:'record',scene:selectedProfile()?.scene||q('#sessionScene').value,segments:[{at,condition:clone(condition)}],...(trial.active?{comparisonId,comparisonIndex:trial.index}:{})}};
+  function beginSession(kind,startedCondition=currentCondition()){
+    const condition=clone(startedCondition);checkTrialCondition(condition);
+    if(currentSession){conditionChanged(condition);if(currentSession.session.kind==='manual')currentSession.session.kind=kind;else if(currentSession.session.kind!==kind)currentSession.session.kind='combined';sync();return;}
+    const at=new Date().toISOString(),fixedComparison=trial.active&&!trial.preparing&&!trial.changed;
+    currentSession={name:activeConditionName+(trial.active&&trial.changed?'（比較条件から変更）':''),condition,session:{id:crypto.randomUUID(),startedAt:at,endedAt:'',kind,reason:'record',scene:selectedProfile()?.scene||q('#sessionScene').value,segments:[{at,condition:clone(condition)}],...(fixedComparison?{comparisonId,comparisonIndex:trial.index}:{})}};
     lastSegmentAt=0;updateSessionChoices();
   }
-  function conditionChanged(){
-    if(!currentSession)return;const segments=currentSession.session.segments,c=currentCondition();if(same(segments.at(-1).condition,c))return;
+  function continueSession(){
+    const script=speaking||advanceTimer!==null;
+    if(audio.running||script)beginSession(audio.running?(script?'combined':'audio'):'script');
+  }
+  function conditionChanged(c=currentCondition()){
+    checkTrialCondition(c);showTrial();
+    if(!currentSession)return;const segments=currentSession.session.segments;if(same(segments.at(-1).condition,c))return;
     const timestamp=Date.now(),segment={at:new Date(timestamp).toISOString(),condition:clone(c)};
     // Keep the start intact, coalesce a drag, and bound data saved in a backup.
     if(segments.length>1&&(timestamp-lastSegmentAt<800||segments.length>=64))segments[segments.length-1]=segment;else segments.push(segment);
@@ -224,11 +244,11 @@
     s.scene=q('#sessionScene').value;if(!s.endedAt)s.endedAt=new Date().toISOString();
     const reflection={id:crypto.randomUUID(),at:now(),profile:target?.name||activeConditionName,conditionSnapshot:condition,session:s,effort:q('#effortOut').textContent==='—'?null:Number(q('#effort').value),naturalness:q('#naturalnessOut').textContent==='—'?null:Number(q('#naturalness').value),wouldUse:q('#wouldUse').value,note:q('#sessionNote').value};
     if(!commitData({...data,reflections:[...data.reflections,reflection]}))return;
-    if(target===currentSession){currentSession=null;sessionConditionSnapshot=null;if(audio.running)beginSession('audio');}
+    if(target===currentSession){currentSession=null;sessionConditionSnapshot=null;continueSession();}
     else pendingSessions=pendingSessions.filter(item=>item!==target);
     resetRatings();chosenSession='';updateSessionChoices();renderHistory();toast('設定と振り返りを保存しました。');
   }
-  q('#skipReflection').onclick=()=>{const target=reflectionTarget();if(target===currentSession)currentSession=null;else pendingSessions=pendingSessions.filter(item=>item!==target);chosenSession='';resetRatings();updateSessionChoices();go('assist');toast('この使用の記録を残さず、操作に戻りました。');};
+  q('#skipReflection').onclick=()=>{const target=reflectionTarget();if(target&&target===currentSession){currentSession=null;sessionConditionSnapshot=null;continueSession();}else pendingSessions=pendingSessions.filter(item=>item!==target);chosenSession='';resetRatings();updateSessionChoices();go('assist');toast('この使用の記録を残さず、操作に戻りました。');};
   q('#sessionScene').onchange=()=>{const target=reflectionTarget();if(target)target.session.scene=q('#sessionScene').value;};
 
   function renderHistory(){
@@ -253,6 +273,7 @@
   q('#historyScene').onchange=q('#historyProfile').onchange=renderHistory;
 
   function captureTrial(){
+    trialReturn={condition:clone(currentCondition()),activeProfile,activeConditionName,origin:clone(origin),originName};
     comparisonId=crypto.randomUUID();trialSnapshots={'@origin':clone(origin),'@draft':clone(currentCondition()),baseline:withoutAssistance(defaultCondition())};
     for(const p of data.profiles)trialSnapshots[p.id]=clone(p.condition);
   }
@@ -265,11 +286,19 @@
     if(a.masterGain!==b.masterGain)changes.push('全体音量: '+a.masterGain+' → '+b.masterGain+' dB');
     return changes.join(' ／ ')||'設定値は同じです';
   }
-  function showTrial(){q('#trialBar').hidden=!trial.active;if(!trial.active)return;q('#trialBarTitle').textContent='比較 '+(trial.index+1)+' / '+trial.order.length+' · '+trialName(trial.order[trial.index]);q('#trialDifference').textContent=trialDifference();q('#trialAdvance').textContent=trial.index===trial.order.length-1?'停止して比較を終える':'停止して次の条件';}
-  async function finishTrial(){if(advancing)return;advancing=true;try{await emergencyStop({broadcast:false});trial={order:[],index:0,active:false};closeTrial();showTrial();go('history');toast('比較を終了しました。各条件の感想を記録できます。');}finally{advancing=false;}}
-  async function advanceTrial(){if(!trial.active||advancing)return;if(trial.index===trial.order.length-1){await finishTrial();return;}advancing=true;q('#trialAdvance').disabled=true;try{await emergencyStop({broadcast:false});trial.index++;await applyTrialCondition();}finally{advancing=false;q('#trialAdvance').disabled=false;}}
+  function showTrial(){q('#trialBar').hidden=!trial.active;if(!trial.active)return;q('#trialBarTitle').textContent='比較 '+(trial.index+1)+' / '+trial.order.length+' · '+trialName(trial.order[trial.index])+(trial.changed?' · 比較条件から変更あり':'');q('#trialChangeNotice').hidden=!trial.changed;q('#trialDifference').textContent=trialDifference();q('#trialAdvance').textContent=trial.index===trial.order.length-1?'停止して比較を終える':'停止して次の条件';}
+  async function finishTrial(){
+    if(advancing)return;advancing=true;
+    try{
+      if(!await emergencyStop({broadcast:false}))return;
+      trial={order:[],index:0,active:false};closeTrial();
+      if(trialReturn){const saved=trialReturn;trialReturn=null;activeProfile=saved.activeProfile;activeConditionName=saved.activeConditionName;origin=clone(saved.origin);originName=saved.originName;sessionConditionSnapshot=null;applyCondition(saved.condition);renderProfiles();sync();}
+      showTrial();go('history');toast('比較を終了し、開始前の編集状態に戻しました。各条件の感想を記録できます。');
+    }finally{advancing=false;}
+  }
+  async function advanceTrial(){if(!trial.active||advancing)return;if(trial.index===trial.order.length-1){await finishTrial();return;}advancing=true;q('#trialAdvance').disabled=true;try{if(!await emergencyStop({broadcast:false}))return;trial.index++;await applyTrialCondition();}finally{advancing=false;q('#trialAdvance').disabled=false;}}
   q('#trialAdvance').onclick=q('#trialNext').onclick=advanceTrial;q('#trialFinish').onclick=finishTrial;
-  q('#trialRate').onclick=()=>{if(!currentSession){sessionConditionSnapshot=clone(currentCondition());beginSession('manual');currentSession.session.comparisonId=comparisonId;currentSession.session.comparisonIndex=trial.index;}chosenSession=currentSession.session.id;updateSessionChoices();go('history');};
+  q('#trialRate').onclick=()=>{if(!currentSession){sessionConditionSnapshot=clone(currentCondition());beginSession('manual');}chosenSession=currentSession.session.id;updateSessionChoices();go('history');};
   q('#trialStartButton').onclick=async()=>{
     if(!trial.active){const a=q('#trialProfileA').value,b=q('#trialProfileB').value;if(a===b){toast('異なる2つの条件を選んでください。');return;}captureTrial();trial.order=[a,b];if(q('#trialRandomize').checked&&Math.random()<.5)trial.order.reverse();trial.index=0;trial.active=true;}
     await applyTrialCondition();
@@ -295,7 +324,7 @@
     closeHelp(){closeInfo();closeDrawer();},
     dismissEscape(){if(q('#profileDialog').open){q('#profileDialog').close();return true;}if(!popover.hidden){closeInfo(true);return true;}if(!q('#guideDrawer').hidden){closeDrawer(true);return true;}return false;},
     navigating(page){const current=q('.page.active')?.id.replace('page-','');if(page==='guide'&&current!=='guide')guideReturn=current||'assist';closeInfo();if(page!=='assist'&&drawerHelp===null)closeDrawer();},
-    reset(){currentSession=null;pendingSessions=[];chosenSession='';splitSource=data.script;closeInfo();closeDrawer();resetRatings();loaded();scriptState();updateSessionChoices();showTrial();}
+    reset(){currentSession=null;pendingSessions=[];chosenSession='';trialReturn=null;trialSnapshots={};comparisonId='';trial={order:[],index:0,active:false};closeTrial();splitSource=data.script;closeInfo();closeDrawer();resetRatings();loaded();scriptState();updateSessionChoices();showTrial();}
   };
   loaded();scriptState();renderHistory();updateSessionChoices();
 })();

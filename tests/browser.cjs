@@ -218,6 +218,7 @@ async function run() {
   await execute(`localStorage.removeItem(STORE)`);await window.reload();
   assert.equal(await execute('!storageBlocked&&document.querySelector("#storageNotice").hidden'),true);
   await require('./workspace-browser.cjs')(execute,window);
+  await require('./workspace-review-browser.cjs')(execute,window);
   await execute(`new Promise(resolve=>setTimeout(resolve,3700))`);
   const output = path.join(__dirname, '..', '.test-output');fs.mkdirSync(output, {recursive:true});
   const save = async name => {await execute('new Promise(resolve=>setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(resolve)),150))');fs.writeFileSync(path.join(output,name), (await window.webContents.capturePage()).toPNG());};

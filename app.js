@@ -173,7 +173,13 @@ async function startAssist(){
   const request=++assistRequest;
   try{
     $('#startAssist').disabled=true;$('#outputDevice').disabled=true;setStatus('assist','waiting','補助: 開始中');
-    const condition=currentCondition();const result=await audio.start({inputDeviceId:$('#inputDevice').value,outputDeviceId:$('#outputDevice').value,settings:condition});if(request!==assistRequest)return;sessionConditionSnapshot=JSON.parse(JSON.stringify(condition));window.workspace?.beginSession('audio');setStatus('assist','running','補助: 動作中');setStatus('mic',audio.stream?'running':'idle',audio.stream?'マイク: 使用中':'マイク: 未使用');syncControls();$('#startAssist').disabled=true;$('#muteAssist').disabled=false;$('#audioMessage').textContent=result.warnings[0]||'補助音をヘッドホンに再生しています。通話相手への音声は、通話アプリ側でミュートしてください。読み上げ音声はOS／ブラウザの既定の出力先を使います。';
+    const condition=currentCondition();
+    const starting=audio.start({inputDeviceId:$('#inputDevice').value,outputDeviceId:$('#outputDevice').value,settings:condition});
+    window.workspace?.sync();$('#audioMessage').textContent='補助の開始を待っています。開始中は設定を変更できません。「すべて停止」で取り消せます。';
+    const result=await starting;if(request!==assistRequest)return;
+    // Native controls are frozen while starting; also reject edits made by a script.
+    if(JSON.stringify(currentCondition())!==JSON.stringify(condition)){applyCondition(condition);if(request!==assistRequest||!audio.running)return;}
+    sessionConditionSnapshot=JSON.parse(JSON.stringify(condition));window.workspace?.beginSession('audio',condition);setStatus('assist','running','補助: 動作中');setStatus('mic',audio.stream?'running':'idle',audio.stream?'マイク: 使用中':'マイク: 未使用');syncControls();$('#startAssist').disabled=true;$('#muteAssist').disabled=false;$('#audioMessage').textContent=result.warnings[0]||'補助音をヘッドホンに再生しています。通話相手への音声は、通話アプリ側でミュートしてください。読み上げ音声はOS／ブラウザの既定の出力先を使います。';
   }catch(e){if(request!==assistRequest)return;sessionConditionSnapshot=null;stoppedControls();$('#audioMessage').textContent=({NotAllowedError:'マイクを利用できません。ブラウザのサイト設定でマイク許可を確認してください。',NotFoundError:'マイクが見つかりません。接続と入力機器を確認してください。',NotReadableError:'マイクを開けません。他のアプリによる占有や機器の接続を確認してください。'}[e.name])||e.message||'補助を開始できませんでした。マイク権限、ヘッドホン、他アプリの設定を確認してください。';}
   finally{if(request===assistRequest)$('#outputDevice').disabled=false;}
 }
@@ -250,9 +256,13 @@ function renderTrialSelectors(){const options=[{id:'baseline',name:'補助なし
 function openTrial(){window.workspace?.closeHelp();renderTrialSelectors();trialReturnFocus=document.activeElement;$('#trialModal').classList.add('open');$('#trialModal').setAttribute('aria-hidden','false');$('.app-shell').inert=true;const configuring=!trial.active;['trialProfileA','trialProfileB','trialRandomize'].forEach(id=>$(`#${id}`).disabled=!configuring);$('#trialStartButton').textContent=configuring?'比較を開始':'この条件を準備';$('#trialNext').hidden=configuring;if(configuring){$('#trialStep').textContent='準備';$('#trialCondition').textContent='条件を選んで「比較を開始」を押してください。';}else updateTrial();$('#trialModal .close').focus();}
 async function applyTrialCondition(){
   const id=trial.order[trial.index],name=id==='baseline'?'補助なし':id==='@origin'?'編集前の条件':id==='@draft'?'編集中の条件':data.profiles.find(p=>p.id===id)?.name||'比較の条件';
-  const result=await loadCondition(name,window.workspace.trialCondition(id));if(result===null||audio.running||audio.starting)return;
-  activeProfile=id==='baseline'?'baseline':id.startsWith('@')?'':id;$('#profileSelect').value=activeProfile;window.workspace.loaded();
-  sessionConditionSnapshot=JSON.parse(JSON.stringify(currentCondition()));closeTrial();go('assist');window.workspace.showTrial();toast(`比較 ${trial.index+1}/${trial.order.length} の条件を準備しました。補助はまだ開始していません。`);
+  const comparison=trial;comparison.preparing=true;
+  try{
+    const result=await loadCondition(name,window.workspace.trialCondition(id));if(trial!==comparison||result===null||audio.running||audio.starting)return;
+    activeProfile=id==='baseline'?'baseline':id.startsWith('@')?'':id;$('#profileSelect').value=activeProfile;window.workspace.loaded();
+    comparison.changed=false;
+    sessionConditionSnapshot=JSON.parse(JSON.stringify(currentCondition()));closeTrial();go('assist');toast(`比較 ${trial.index+1}/${trial.order.length} の条件を準備しました。補助はまだ開始していません。`);
+  }finally{comparison.preparing=false;window.workspace.sync();}
 }
 $('#startTrial').onclick=openTrial;$$('[data-close-modal]').forEach(b=>b.onclick=closeTrial);function updateTrial(){const id=trial.order[trial.index],profile=data.profiles.find(p=>p.id===id);$('#trialStep').textContent=`${trial.index+1} / ${trial.order.length}`;$('#trialCondition').textContent=id==='baseline'?'補助なし':profile?.name||'保存済みの設定';$('#trialNext').textContent=trial.index<trial.order.length-1?'次の条件へ':'比較を終える';}$('#trialStartButton').onclick=async()=>{if(!trial.active){window.workspace?.captureTrial();trial.order=[$('#trialProfileA').value,$('#trialProfileB').value];if($('#trialRandomize').checked&&Math.random()<.5)trial.order.reverse();trial.index=0;trial.active=true;}await applyTrialCondition();};$('#trialNext').onclick=()=>{if(trial.index<trial.order.length-1){trial.index++;updateTrial();}else{trial={order:[],index:0,active:false};closeTrial();toast('比較を終えました。必要なら振り返りを残せます。');go('history');}};
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();if(window.workspace?.dismissEscape())return;if($('#trialModal').classList.contains('open'))closeTrial();else emergencyStop();return;}if(e.key==='Tab'&&$('#trialModal').classList.contains('open')){const nodes=[...$('#trialModal').querySelectorAll('button:not(:disabled),select:not(:disabled),input:not(:disabled)')].filter(node=>!node.hidden);const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}if(e.ctrlKey&&e.altKey){if(e.code==='F12'){e.preventDefault();emergencyStop();}if(e.code==='F9'){e.preventDefault();speaking||advanceTimer!==null?stopTts():playPhrase();}if(e.code==='F10'){e.preventDefault();nextPhrase();}if(e.code==='F8'){e.preventDefault();previousPhrase();}}});
