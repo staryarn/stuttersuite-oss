@@ -109,7 +109,7 @@
   function syncSettingAvailability(){
     const starting=!!audio.starting,locked=q('#settingLock').checked;
     all('#detailsPanel input,#detailsPanel select,#detailsPanel button:not(.info-button),.module-grid input,.module-grid select').forEach(node=>node.disabled=starting||locked||node.dataset.unavailable==='true');
-    all('#masterGain,#ttsRate,#choralCountdown,#phrasePause,#continuousChoral').forEach(node=>node.disabled=starting);
+    all('#masterGain,#ttsRate,#choralCountdown,#phrasePause,#continuousChoral,#masterGainNumber,#ttsRateNumber,#choralCountdownNumber,#phrasePauseNumber,#compactGain,#compactRate').forEach(node=>node.disabled=starting);
   }
   function checkTrialCondition(condition){
     if(!trial.active||trial.preparing)return;
@@ -125,7 +125,7 @@
     syncSettingAvailability();checkTrialCondition(c);showTrial();
     const stored=profile&&same({...normalizeCondition(profile.condition),mode:'custom'},c);
     q('#dirtyState').textContent=dirty?'変更あり・未保存':stored?'保存済み':activeProfile.startsWith('sample:')?'サンプル・未保存':activeProfile==='baseline'?'補助なし':'未保存の条件';
-    q('#dirtyState').classList.toggle('changed',dirty);q('#revertCondition').disabled=!dirty;
+    q('#dirtyState').classList.toggle('changed',dirty);q('#revertCondition').disabled=!!audio.starting||!dirty;
     q('#updateProfile').disabled=!profile;q('#newProfile').disabled=!profile;q('#conditionName').textContent=activeConditionName+(dirty?' ・編集中':'');
     q('#conditionSummary').textContent=technicalSummary(c);
     const select=q('#profileSelect'),transient=select.querySelector('[data-transient]');
