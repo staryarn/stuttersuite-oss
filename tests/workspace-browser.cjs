@@ -5,7 +5,7 @@ module.exports=async function verifyWorkspace(run,window){
   const execute=script=>run(script.includes('await ')?'(async()=>{'+script+'})()':script);
   const check=async(script,message)=>assert.equal(await execute(script),true,message);
   await execute(`globalThis.uiCheck=(value,message)=>{if(!value)throw Error(message);};globalThis.uiWait=async fn=>{for(let i=0;i<200;i++){if(fn())return;await new Promise(resolve=>setTimeout(resolve,10));}throw Error('UI wait timed out');};void 0;`);
-  await check(`data.profiles.length===0&&document.querySelector('#profileSelect').value==='baseline'&&!audio.stream`,'fresh workspace separates samples from personal settings');
+  await check(`data.profiles.length===0&&document.querySelector('#profileSelect').value==='baseline'&&currentCondition().masterGain===0&&document.querySelector('#masterGain').value==='0'&&document.querySelector('#masterGainNumber').value==='0'&&!audio.stream`,'fresh workspace separates samples from personal settings');
   await execute(`globalThis.uiOriginalCapture=navigator.mediaDevices.getUserMedia;globalThis.uiCaptureContext=new AudioContext();globalThis.uiCaptureStream=uiCaptureContext.createMediaStreamDestination().stream;navigator.mediaDevices.getUserMedia=()=>new Promise(resolve=>globalThis.uiFinishCapture=resolve);globalThis.uiPreparing=prepareAudio();void 0;`);
   await check(`document.querySelector('#micStatus').textContent.includes('確認中')`,'microphone check reports preparation');
   await execute(`await emergencyStop({broadcast:false});globalThis.uiLateStream=uiCaptureStream.clone();uiFinishCapture(uiLateStream);await uiPreparing;navigator.mediaDevices.getUserMedia=uiOriginalCapture;uiCaptureStream.getTracks().forEach(track=>track.stop());await uiCaptureContext.close();`);
@@ -56,9 +56,9 @@ module.exports=async function verifyWorkspace(run,window){
 
   // Microphone-free baseline use, mid-use changes and optional reflection values.
   await execute(`workspace.reset();await applyProfile('baseline');await startAssist();document.querySelector('#masterGain').value='-30';document.querySelector('#masterGain').dispatchEvent(new Event('input'));await muteAssist();go('history');document.querySelector('#sessionScene').value='会話';document.querySelector('#saveReflection').click();`);
-  await check(`data.reflections.at(-1).session.kind==='audio'&&data.reflections.at(-1).session.segments.length===2&&data.reflections.at(-1).conditionSnapshot.masterGain===-24&&data.reflections.at(-1).session.segments[1].condition.masterGain===-30&&data.reflections.at(-1).effort===null`,'start snapshot and changes remain distinct, with unanswered ratings');
+  await check(`data.reflections.at(-1).session.kind==='audio'&&data.reflections.at(-1).session.segments.length===2&&data.reflections.at(-1).conditionSnapshot.masterGain===0&&data.reflections.at(-1).session.segments[1].condition.masterGain===-30&&data.reflections.at(-1).effort===null`,'start snapshot and changes remain distinct, with unanswered ratings');
   await execute(`document.querySelector('#historyList .text-btn').click();`);await execute(`uiWait(()=>document.querySelector('#page-assist').classList.contains('active'))`);
-  await check(`currentCondition().masterGain===-24&&!audio.running`,'history reuses start condition without auto-start');
+  await check(`currentCondition().masterGain===0&&!audio.running`,'history reuses start condition without auto-start');
 
   // Stale text cannot play an old phrase. Local TTS remains independent of audio.
   await execute(`go('script');document.querySelector('#scriptText').value='一つ目。二つ目。';document.querySelector('#scriptText').dispatchEvent(new Event('input'));document.querySelector('#splitScript').click();globalThis.savedLocalVoices=speechSynthesis.getVoices;globalThis.savedSpeak=speechSynthesis.speak;globalThis.savedUtterance=window.SpeechSynthesisUtterance;window.SpeechSynthesisUtterance=class{constructor(text){this.text=text;}};globalThis.uiUtterances=[];speechSynthesis.getVoices=()=>[{name:'local-ui',localService:true,lang:'ja-JP'}];speechSynthesis.speak=u=>uiUtterances.push(u);loadVoices();playPhrase({skipCountdown:true});`);

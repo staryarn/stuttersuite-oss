@@ -16,6 +16,14 @@ test('existing public profiles, drafts and reflection snapshots survive migratio
   assert.equal(data.reflections[0].note,seed.reflections[0].note);
   assert.equal(data.reflections[0].conditionSnapshot.branches[0].delay,99); assert.equal(data.schema_version, 6);
 });
+test('new master gain defaults to 0 dB without changing existing saved gains',()=>{
+  const {normalizeCondition}=load(null);
+  assert.equal(normalizeCondition({}).masterGain,0);
+  const saved=load({schema_version:5,profiles:[{id:'saved',condition:{mode:'custom',masterGain:-24}}],phrases:[],reflections:[]});
+  assert.equal(saved.data.profiles[0].condition.masterGain,-24);
+  const old=load({schema_version:3,profiles:[{id:'old',mode:'daf'}],phrases:[],reflections:[]});
+  assert.equal(old.data.profiles[0].condition.masterGain,-24);
+});
 test('invalid nested data and future schemas are preserved for recovery without crashing boot',()=>{
   for(const invalid of [{...{},schema_version:999}, {profiles:[null]}, {profiles:[],phrases:[null]}, {profiles:[],reflections:[null]}]){
     const result=load(invalid);assert.equal(result.storageBlocked,true);assert.equal(result.recoveryRaw,JSON.stringify(invalid));assert.deepEqual(copy(result.data.profiles),[]);

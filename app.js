@@ -6,7 +6,7 @@ const $$ = (s) => [...document.querySelectorAll(s)];
 const STORE = 'stuttersuite.public.v1';
 const SCHEMA_VERSION = 6;
 const defaultProfiles = [
-  {id:'meeting', name:'会議用', scene:'通話・会議', condition:{mode:'custom',branches:[{enabled:true,delay:50,pitch:0,gain:0,pan:'both'},{enabled:false,delay:200,pitch:0,gain:-6,pan:'both'}],masterGain:-24,masking:{enabled:false,type:'white',gain:-42,filter:'none'},direct:{enabled:false,gain:-18,pan:'both'},metronome:{enabled:false,bpm:60,type:'visual'},choral:{continuous:false,countdown:0,rate:1.2,pause:0}}},
+  {id:'meeting', name:'会議用', scene:'通話・会議', condition:{mode:'custom',branches:[{enabled:true,delay:50,pitch:0,gain:0,pan:'both'},{enabled:false,delay:200,pitch:0,gain:-6,pan:'both'}],masterGain:0,masking:{enabled:false,type:'white',gain:-42,filter:'none'},direct:{enabled:false,gain:-18,pan:'both'},metronome:{enabled:false,bpm:60,type:'visual'},choral:{continuous:false,countdown:0,rate:1.2,pause:0}}},
   {id:'presentation', name:'発表前', scene:'発表', condition:{mode:'custom',branches:[{enabled:false,delay:50,pitch:0,gain:0,pan:'both'},{enabled:false,delay:200,pitch:0,gain:-6,pan:'both'}],masterGain:-27,masking:{enabled:false,type:'white',gain:-42,filter:'none'},direct:{enabled:false,gain:-18,pan:'both'},metronome:{enabled:false,bpm:60,type:'visual'},choral:{continuous:true,countdown:1,rate:1.2,pause:.5}}}
 ];
 const LIMITS = Object.freeze({fileBytes: 2 * 1024 * 1024, script: 50000, profiles: 100, phrases: 2000, reflections: 2000, note: 10000});
@@ -28,7 +28,7 @@ function normalizeCondition(value={}){
       const branch=branches[i]||{};
       return {enabled:typeof branch.enabled==='boolean'?branch.enabled:i===0,delay:mode==='faf'?0:numberInRange(branch.delay,i?200:50,0,300),pitch:mode==='daf'?0:Math.round(numberInRange(branch.pitch,0,-12,12)*2)/2,gain:numberInRange(branch.gain,i?-6:0,-60,0),pan:['left','right','both'].includes(branch.pan)?branch.pan:'both'};
     }),
-    masterGain:numberInRange(value.masterGain??value.master,-24,-60,0),
+    masterGain:numberInRange(value.masterGain??value.master,0,-60,0),
     masking:{enabled:!!value.masking?.enabled,type:['white','pink','brown'].includes(value.masking?.type)?value.masking.type:'white',gain:numberInRange(value.masking?.gain,-42,-60,-12),filter:['none','lowpass','highpass'].includes(value.masking?.filter)?value.masking.filter:'none'},
     direct:{enabled:!!value.direct?.enabled,gain:numberInRange(value.direct?.gain,-18,-60,0),pan:['left','right','both'].includes(value.direct?.pan)?value.direct.pan:'both'},
     metronome:{enabled:!!value.metronome?.enabled,bpm:numberInRange(value.metronome?.bpm,60,30,180),type:['visual','sound','both'].includes(value.metronome?.type)?value.metronome.type:'visual'},

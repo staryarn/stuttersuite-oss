@@ -60,10 +60,10 @@ AUDIO WORKSPACE
 <label for="inputDevice">マイク<select id="inputDevice"><option value="default">既定のマイク</option></select></label><label for="outputDevice">補助音の出力先<select id="outputDevice"><option value="default">ブラウザの既定出力</option></select></label><button class="info-button" type="button" data-info="devices" aria-label="機器の説明" aria-expanded="false">i</button>
 <div class="control">
 <div class="control-heading">
-<label for="masterGain">全体音量</label><button class="info-button" type="button" data-info="master" aria-label="全体音量の説明" aria-expanded="false">i</button><output id="masterGainValue" for="masterGain masterGainNumber">-24 dB</output>
+<label for="masterGain">全体音量</label><button class="info-button" type="button" data-info="master" aria-label="全体音量の説明" aria-expanded="false">i</button><output id="masterGainValue" for="masterGain masterGainNumber">0 dB</output>
 </div>
 <div class="range-input">
-<input id="masterGain" type="range" min="-60" max="0" value="-24" step="1" aria-label="全体音量"><input id="masterGainNumber" class="number-input" type="number" min="-60" max="0" step="1" value="-24" data-number-for="masterGain" aria-label="全体音量の数値">
+<input id="masterGain" type="range" min="-60" max="0" value="0" step="1" aria-label="全体音量"><input id="masterGainNumber" class="number-input" type="number" min="-60" max="0" step="1" value="0" data-number-for="masterGain" aria-label="全体音量の数値">
 </div>
 </div>
 <div class="transport">
@@ -883,7 +883,7 @@ COMPARISON
 <div class="compact-state">
 <span id="compactAssist"></span><span id="compactTts"></span>
 </div>
-<button id="compactMute" class="danger">すべて停止</button><label>全体音量<input id="compactGain" type="range" min="-60" max="0" value="-24"></label>
+<button id="compactMute" class="danger">すべて停止</button><label>全体音量<input id="compactGain" type="range" min="-60" max="0" value="0"></label>
 <div id="compactScript">
 <p class="compact-phrase">
 <strong id="compactSource">現在の句:</strong><span id="compactPhrase">—</span>
