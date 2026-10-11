@@ -14,19 +14,32 @@ test('existing public profiles, drafts and reflection snapshots survive migratio
   assert.equal(data.profiles[0].condition.branches[0].pan, 'left');
   assert.equal(data.script, seed.script); assert.deepEqual(copy(data.phrases), seed.phrases);
   assert.equal(data.reflections[0].note,seed.reflections[0].note);
-  assert.equal(data.reflections[0].conditionSnapshot.branches[0].delay,99); assert.equal(data.schema_version, 5);
+  assert.equal(data.reflections[0].conditionSnapshot.branches[0].delay,99); assert.equal(data.schema_version, 6);
 });
 test('invalid nested data and future schemas are preserved for recovery without crashing boot',()=>{
   for(const invalid of [{...{},schema_version:999}, {profiles:[null]}, {profiles:[],phrases:[null]}, {profiles:[],reflections:[null]}]){
-    const result=load(invalid);assert.equal(result.storageBlocked,true);assert.equal(result.recoveryRaw,JSON.stringify(invalid));assert.ok(result.data.profiles.length>0);
+    const result=load(invalid);assert.equal(result.storageBlocked,true);assert.equal(result.recoveryRaw,JSON.stringify(invalid));assert.deepEqual(copy(result.data.profiles),[]);
   }
 });
 test('backup validation rejects hostile field types, duplicates, oversized content and invalid conditions',()=>{
   const {prepareData}=load(null),valid={schema_version:5,profiles:[{id:'safe',condition:{}}],phrases:[],reflections:[]};
-  const bad=[{...valid,phrases:[null]}, {...valid,profiles:[null]}, {...valid,reflections:[{effort:'<a>bad</a>'}]}, {...valid,reflections:[{wouldUse:'<img>'}]}, {...valid,profiles:[{id:'safe'},{id:'safe'}]}, {...valid,script:'x'.repeat(50001)}, {...valid,profiles:[{condition:{masterGain:1}}]}, {...valid,profiles:[{condition:{branches:[{pitch:13}]}}]}, {...valid,profiles:[{condition:{masking:null}}]}, {...valid,schema_version:'5'}, {...valid,schema_version:6}, {...valid,phrases:Array(2001).fill({text:'a'})}];
+  const bad=[{...valid,phrases:[null]}, {...valid,profiles:[null]}, {...valid,reflections:[{effort:'<a>bad</a>'}]}, {...valid,reflections:[{wouldUse:'<img>'}]}, {...valid,profiles:[{id:'safe'},{id:'safe'}]}, {...valid,script:'x'.repeat(50001)}, {...valid,profiles:[{condition:{masterGain:1}}]}, {...valid,profiles:[{condition:{branches:[{pitch:13}]}}]}, {...valid,profiles:[{condition:{masking:null}}]}, {...valid,schema_version:'5'}, {...valid,schema_version:7}, {...valid,phrases:Array(2001).fill({text:'a'})}];
   for(const value of bad)assert.throws(()=>prepareData(value,{backup:true}));
   const sanitized=prepareData({...valid,secret:'DROP',profiles:[{id:'x"<a>',name:'<b>literal</b>',condition:{},extra:'DROP'}]},{backup:true});
   assert.equal(sanitized.profiles[0].id,'x"<a>');assert.equal(sanitized.profiles[0].name,'<b>literal</b>');assert.equal(sanitized.secret,undefined);assert.equal(sanitized.profiles[0].extra,undefined);
+});
+test('empty saved presets stay empty and samples are never added by migration',()=>{
+  const first=load({schema_version:5,profiles:[],script:'原稿',phrases:[]});
+  assert.equal(first.storageBlocked,false);assert.deepEqual(copy(first.data.profiles),[]);
+  assert.deepEqual(copy(load(copy(first.data)).data),copy(first.data));
+});
+test('favorite presets and bounded session settings round trip without arbitrary data',()=>{
+  const {prepareData}=load(null);
+  const session={id:'use',startedAt:'2026-10-10T10:00:00Z',endedAt:'2026-10-10T10:01:00Z',kind:'audio',reason:'stop',scene:'会話',segments:[{at:'2026-10-10T10:00:00Z',condition:{}},{at:'2026-10-10T10:00:15Z',condition:{branches:[{delay:75}]}}],comparisonId:'compare',comparisonIndex:1,audio:'DROP'};
+  const input={profiles:[{id:'own',favorite:true,condition:{}}],phrases:[],reflections:[{session}]};
+  const result=prepareData(input,{backup:true});assert.equal(result.profiles[0].favorite,true);assert.equal(result.reflections[0].session.segments[1].condition.branches[0].delay,75);assert.equal(result.reflections[0].session.audio,undefined);
+  assert.deepEqual(copy(prepareData(copy(result),{backup:true})),copy(result));
+  for(const change of [{kind:'bad'},{segments:[null]},{segments:Array(65).fill({at:'',condition:{}})},{comparisonIndex:.5},{segments:[{condition:{branches:[{delay:301}]}}]}])assert.throws(()=>prepareData({...input,reflections:[{session:{...session,...change}}]},{backup:true}));
 });
 test('FAF and combo settings round trip including independent branches', () => {
   const seed = {profiles: [{id: 'new', condition: {mode: 'combo', branches: [{enabled: true, delay: 50, pitch: -3, gain: -9, pan: 'left'}, {enabled: true, delay: 140, pitch: 6, gain: -12, pan: 'right'}]}}], phrases: [], reflections: []};
