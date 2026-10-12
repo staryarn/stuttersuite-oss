@@ -83,6 +83,28 @@ module.exports=async function verifyWorkspace(run,window){
     await execute(`go('${page}')`);
     await check(`document.documentElement.scrollWidth<=innerWidth&&document.querySelector('#emergency').getBoundingClientRect().right<=innerWidth&&getComputedStyle(document.querySelector('.status-group')).display!=='none'`,page+' mobile overflow and status');
   }
+  // A short mobile page must not distribute spare viewport height into the tab row.
+  // The 360px case approximates the CSS viewport of an Xperia 10 V.
+  for (const width of [360, 390]) {
+    window.setSize(width, 844);
+    await execute(`go('home')`);
+    const heights = await execute(`(() => {
+      const page = document.querySelector('#page-home');
+      const previousDisplay = page.style.display;
+      page.style.display = 'none'; // Simulate a page shorter than the viewport.
+      try {
+        const sidebar = document.querySelector('.sidebar');
+        return {
+          sidebar: sidebar.getBoundingClientRect().height,
+          activeTab: sidebar.querySelector('.nav.active').getBoundingClientRect().height,
+        };
+      } finally {
+        page.style.display = previousDisplay;
+      }
+    })()`);
+    assert.ok(heights.sidebar <= 64 && heights.activeTab <= 64,
+      `mobile navigation stretched at ${width}px: ${JSON.stringify(heights)}`);
+  }
   window.setSize(1280,1000);
   await execute(`await emergencyStop({broadcast:false});localStorage.removeItem(STORE)`);await window.reload();
   console.log('WORKSPACE UI TESTS PASSED');
