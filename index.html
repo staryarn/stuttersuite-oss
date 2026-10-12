@@ -632,7 +632,7 @@ StutterSuiteは、自分の声の聞こえ方を変えたり、一定の拍や�
 <strong>遅延表示について：</strong>追加遅延とは別に、ブラウザ・機器・音程処理による遅延が発生します。追加遅延が0 msでも、実際の遅延はゼロではありません。「音程処理バッファ」は処理に必要な時間の目安で、耳元に届くまでの総遅延は未測定です。
 </p>
 <p>
-<strong>研究結果：</strong>FAFでは、12人を対象とした音読研究で吃音頻度の低下が報告されています。ただし、全員への効果、自由会話での効果、長期的な効果を示すものではありません。DAF単独の2026年のメタ分析では、全体として有意な改善は確認されませんでした。<a href="https://pubmed.ncbi.nlm.nih.gov/8729926/" target="_blank" rel="noopener noreferrer">FAFの研究（1996）</a> ／ <a href="https://pubmed.ncbi.nlm.nih.gov/42340070/" target="_blank" rel="noopener noreferrer">DAFのメタ分析（2026）</a>
+<strong>研究結果：</strong>FAFでは、12人を対象とした音読研究で吃音頻度の低下が報告されています。ただし、全員への効果、自由会話での効果、長期的な効果を示すものではありません。DAF単独の2026年のメタ分析では、全体として有意な改善は確認されませんでした。<a href="https://pubmed.ncbi.nlm.nih.gov/8729926/" target="_blank" rel="noopener noreferrer">FAFの研究（1996）</a> ／ <a href="https://pubmed.ncbi.nlm.nih.gov/42340070/" target="_blank" rel="noopener noreferrer">DAFのメタ分析（2026）</a> ／ <a href="#evidence-daf">機能別の研究の詳細</a>
 </p>
 <button class="secondary goto" data-target="assist">音声補助へ</button>
 </section>
@@ -668,7 +668,7 @@ StutterSuiteは、自分の声の聞こえ方を変えたり、一定の拍や�
 </p>
 </details>
 <p class="hint">
-マスキング・斉読・リズムを使った音読研究では、吃音頻度、自然さ、負担の変化は一様ではありません。本アプリは研究の機器・音量・手順を再現したものではありません。<a href="https://pubmed.ncbi.nlm.nih.gov/22365886/" target="_blank" rel="noopener noreferrer">Inghamら（2012）</a>
+マスキング・斉読・リズムを使った音読研究では、吃音頻度、自然さ、負担の変化は一様ではありません。本アプリは研究の機器・音量・手順を再現したものではありません。<a href="https://pubmed.ncbi.nlm.nih.gov/22365886/" target="_blank" rel="noopener noreferrer">Inghamら（2012）</a> ／ <a href="#evidence-masking">マスキングの研究詳細</a> ／ <a href="#evidence-rhythm">リズムの研究詳細</a>
 </p>
 </section>
 <section class="panel guide-section" id="guide-script" aria-labelledby="guideScriptTitle">
@@ -699,7 +699,7 @@ StutterSuiteは、自分の声の聞こえ方を変えたり、一定の拍や�
 <strong>出力先について：</strong>TTSには、ブラウザが端末内の音声として識別した読み上げ音声だけを使います。出力先はOS／ブラウザの既定の出力先です。このアプリで指定した補助音の出力先とは異なります。端末内の音声が利用できない場合は再生せず、クラウド音声には切り替えません。
 </p>
 <p>
-<strong>研究結果：</strong>TTSや録音した自分の声との斉読は、原稿を使う模擬発表で研究されています。このOSS版はTTSのみを提供し、自声の録音・保存は行いません。この研究だけでは、自由会話や日本語での効果は判断できません。<a href="https://doi.org/10.1016/j.jfludis.2025.106168" target="_blank" rel="noopener noreferrer">模擬発表の探索的研究（2025）</a>
+<strong>研究結果：</strong>TTSや録音した自分の声との斉読は、原稿を使う模擬発表で研究されています。このOSS版はTTSのみを提供し、自声の録音・保存は行いません。この研究だけでは、自由会話や日本語での効果は判断できません。<a href="https://doi.org/10.1016/j.jfludis.2025.106168" target="_blank" rel="noopener noreferrer">模擬発表の探索的研究（2025）</a> ／ <a href="#evidence-choral">研究の詳細</a>
 </p>
 <button class="secondary goto" data-target="script">原稿・TTSへ</button>
 </section>
@@ -741,39 +741,80 @@ StutterSuiteは、自分の声の聞こえ方を変えたり、一定の拍や�
 </dl>
 </section>
 <section class="panel guide-section" id="guide-science" aria-labelledby="guideScienceTitle">
-<h2 id="guideScienceTitle">
-音声やリズムを変える仕組みと研究結果
-</h2>
-<p>
-発話中は、口を動かすと同時に自分の声を聞いています。聞こえる音声を変えたり、別の音声や拍に合わせたりすることで、話し方が変化する場合があります。StutterSuiteでは、遅延・音程・リズムを調整し、自分にとって使いやすい条件を試せます。
-</p>
+<h2 id="guideScienceTitle">音声やリズムを変える仕組みと研究結果</h2>
+<p>StutterSuiteに含まれる補助方法の研究を、機能別に紹介します。以下は<strong>論文で観察された結果</strong>であり、StutterSuiteで同じ改善が得られるという予測値ではありません。短時間の音読や模擬発表での改善と、日常会話での効果・長期的な改善は区別する必要があります。</p>
+<p class="hint">「対象・比較条件・限界」を開くと、実験の対象人数や装置との違い、原著論文へのリンクを確認できます。数値はグループとして報告された研究結果であり、個人の改善率や達成目標ではありません。</p>
+<div class="evidence-cards" aria-label="機能別の研究">
+<article class="evidence-card" id="evidence-daf">
+<div class="evidence-card-head"><h3>DAF：遅延した自分の声</h3><span class="evidence-kind">体系的レビュー・メタ分析 / 2026</span></div>
+<p class="evidence-result"><strong>DAF単独の全体的な改善は統計的に有意でなかった</strong></p>
+<p>IimuraらはDAFのみを使う研究を集め、通常の聴覚フィードバックと比較しました。特定の話し方・遅延条件では改善の可能性があるものの、全体として一貫した減少は示されていません。</p>
+<details class="evidence-detail"><summary>対象・比較条件・限界と出典</summary>
+<dl><dt>研究規模</dt><dd>8研究・計98人を採用。うち数値を統合できた5研究・61人をメタ分析。</dd>
+<dt>比較・結果</dt><dd>音読や自発話でDAF単独と通常の自声フィードバックを比較。統合した平均差は−1.46（95%信頼区間 −4.83〜1.91）で、有意差は確認されませんでした。</dd>
+<dt>限界とアプリとの差</dt><dd>研究ごとに対象・遅延時間・発話課題が異なります。StutterSuiteは端末・ブラウザによる追加の遅延があり、同一条件を保証できません。FAFとの併用効果を検証した結果ではありません。</dd></dl>
+<p class="evidence-source">Iimura, Yamamoto &amp; Ishida (2026), <cite>Immediate Effects of Delayed Auditory Feedback on Stuttering: A Systematic Review and Meta-Analysis</cite>. <a href="https://doi.org/10.1111/1460-6984.70283" target="_blank" rel="noopener noreferrer">原著論文（DOI）↗</a></p>
+</details>
+</article>
+<article class="evidence-card" id="evidence-faf">
+<div class="evidence-card-head"><h3>FAF：音程を変えた自分の声</h3><span class="evidence-kind">小規模な音読実験 / 1996</span></div>
+<p class="evidence-result"><strong>音読時の吃音頻度が約50〜60％低下</strong></p>
+<p>Stuartらは音程を変えた自声を聞きながら音読する条件で、通常のフィードバックより吃音頻度が低いことを報告しました。</p>
+<details class="evidence-detail"><summary>対象・比較条件・限界と出典</summary>
+<dl><dt>研究規模</dt><dd>吃音のある12人。</dd>
+<dt>比較・結果</dt><dd>音程を上下に1/4・1/2オクターブ（約±3・±6半音）変える4条件を通常の自声フィードバックと比較。通常速度と速い音読で、約50〜60％の減少が観察されました。</dd>
+<dt>限界とアプリとの差</dt><dd>短期・小規模な音読実験です。自由会話や長期効果は分かりません。半音の値は近く設定できますが、音程処理の方法・総遅延・再生音量は同一ではありません。</dd></dl>
+<p class="evidence-source">Stuart et al. (1996), <cite>Fluency effect of frequency alterations...</cite>. <a href="https://pubmed.ncbi.nlm.nih.gov/8729926/" target="_blank" rel="noopener noreferrer">PubMed（PMID 8729926）↗</a></p>
+</details>
+</article>
+<article class="evidence-card" id="evidence-choral">
+<div class="evidence-card-head"><h3>斉読：TTSと声を合わせる</h3><span class="evidence-kind">探索的な模擬発表実験 / 2025</span></div>
+<p class="evidence-result"><strong>非流暢音節の平均割合が約10％から3％未満に</strong></p>
+<p>Demirelの研究では、録音した自分の声またはTTS音声と一緒に原稿を読む2条件で、どちらもベースラインから減少しました。StutterSuiteの原稿・TTS機能と特に関連する研究です。</p>
+<details class="evidence-detail"><summary>対象・比較条件・限界と出典</summary>
+<dl><dt>研究規模</dt><dd>吃音のある成人14人。</dd>
+<dt>比較・結果</dt><dd>補助なしの原稿読み、録音した自分の声との斉読、TTSとの斉読、ホワイトノイズ条件を比較。斉読2条件では平均の非流暢音節割合が約10％から3％未満に減りました。</dd>
+<dt>限界とアプリとの差</dt><dd>英語の模擬発表における探索的な短期研究です。日本語での効果、自由会話や長期効果は未確認です。研究のTTS音声・操作方法とブラウザ内の読み上げは同一ではありません。</dd></dl>
+<p class="evidence-source">Demirel (2025), <cite>A novel use of choral speech significantly reduces stuttering in a simulated presentation setting: An exploratory study</cite>. <a href="https://pubmed.ncbi.nlm.nih.gov/41175681/" target="_blank" rel="noopener noreferrer">PubMed（PMID 41175681）↗</a></p>
+</details>
+</article>
+<article class="evidence-card" id="evidence-masking">
+<div class="evidence-card-head"><h3>マスキング：ノイズを聞く</h3><span class="evidence-kind">音読中の実験 / 2012</span></div>
+<p class="evidence-result"><strong>実験のマスキング条件で吃音の減少が観察された</strong></p>
+<p>Inghamらは音読時のマスキング、斉読、ささやき、リズム刺激を比較しました。いずれも吃音頻度は下がりましたが、自然さ・発話の負担まで同様に改善するわけではありませんでした。</p>
+<details class="evidence-detail"><summary>対象・比較条件・限界と出典</summary>
+<dl><dt>研究規模</dt><dd>成人吃音者12人と、吃音のない対照群12人。</dd>
+<dt>比較・結果</dt><dd>通常の音読と各補助条件を交互に行う実験。吃音頻度だけでなく、速度、自然さ、発話努力も評価しました。4条件のうち4つの評価観点を全て満たしたのは斉読のみでした。</dd>
+<dt>限界とアプリとの差</dt><dd>使用音の種類や音圧がStutterSuiteのホワイト／ピンク／ブラウンノイズと一致しません。特に強い音で自声を消す方法を推奨するものではありません。</dd></dl>
+<p class="evidence-source">Ingham et al. (2012), <cite>Phonation interval modification and speech performance quality...</cite>. <a href="https://pubmed.ncbi.nlm.nih.gov/22365886/" target="_blank" rel="noopener noreferrer">PubMed（PMID 22365886）↗</a></p>
+</details>
+</article>
+<article class="evidence-card" id="evidence-rhythm">
+<div class="evidence-card-head"><h3>メトロノーム：拍に合わせて話す</h3><span class="evidence-kind">音読中の実験 / 2012</span></div>
+<p class="evidence-result"><strong>リズム刺激条件で吃音の減少が観察された</strong></p>
+<p>上記と同じInghamらの研究で、リズムに合わせた音読中の吃音頻度が減りました。ただし、話し方の自然さや負担も含めると、斉読と同じ結果にはなりませんでした。</p>
+<details class="evidence-detail"><summary>対象・比較条件・限界と出典</summary>
+<dl><dt>研究規模</dt><dd>成人吃音者12人と対照群12人。マスキングと同じ研究で、別の独立した試験ではありません。</dd>
+<dt>比較・結果</dt><dd>通常の音読とリズム刺激を使った音読を比較し、吃音頻度・発話速度・自然さ・負担を評価しました。</dd>
+<dt>限界とアプリとの差</dt><dd>研究でのリズム刺激と、StutterSuiteの音・画面の拍表示（とくに点滅のみ）は同一ではありません。画面の点滅を見るだけで同様の効果があるとは確認されていません。</dd></dl>
+<p class="evidence-source">Ingham et al. (2012), <cite>Phonation interval modification and speech performance quality...</cite>. <a href="https://pubmed.ncbi.nlm.nih.gov/22365886/" target="_blank" rel="noopener noreferrer">PubMed（PMID 22365886）↗</a></p>
+</details>
+</article>
+</div>
+<h3>研究全体をどう読み取るか</h3>
 <div class="guide-evidence">
 <div>
-<h3>
-研究で観察された結果
-</h3>
-<p>
-FAF、斉読、リズムなどの条件で、短期的に吃音が減少した報告があります。ただし、結果は個人や条件によって異なります。DAF単独のメタ分析では、全体として有意な改善は確認されていません。
-</p>
+<h3>機器・治療研究の全体像</h3>
+<p>Baxterら（2015）の体系的レビューでは、SpeechEasyに関する6論文のうち対照群を設けたものはなく、5論文がバイアスのリスクが高いと評価されました。短期的な改善報告はあっても、長期・日常使用における確実な効果とは区別が必要です。<a href="https://pubmed.ncbi.nlm.nih.gov/26123259/" target="_blank" rel="noopener noreferrer">体系的レビュー ↗</a></p>
 </div>
 <div>
-<h3>
-仕組みに関する仮説
-</h3>
-<p>
-自声の変化が聴覚と発話運動の連携に影響する、別の音声や拍が発話の開始やタイミングを支える、といった仮説があります。FAFの効果を「別人と話す効果」と断定することや、吃音の原因を単一の脳機能で説明することはできません。
-</p>
+<h3>仕組みはまだ研究途中</h3>
+<p>聴覚フィードバックと発話運動の関係には複数の理論があります。FAFを「別人と話している効果」と断定したり、吃音の原因を単一の仕組みで説明したりすることはできません。<a href="https://pubmed.ncbi.nlm.nih.gov/37216145/" target="_blank" rel="noopener noreferrer">感覚フィードバックのレビュー（2021）↗</a></p>
 </div>
 </div>
-<p>
-感覚フィードバックの役割には複数の理論があります。斉読の効果を外部リズムだけで説明する仮説と、矛盾する結果を報告した研究もあります。<a href="https://pubmed.ncbi.nlm.nih.gov/37216145/" target="_blank" rel="noopener noreferrer">感覚フィードバックのレビュー</a> ／ <a href="https://pubmed.ncbi.nlm.nih.gov/39772710/" target="_blank" rel="noopener noreferrer">斉読とタイミングの研究</a>
-</p>
-<p>
-<strong>本アプリの検証範囲：</strong>研究で得られた短期的な結果は、本アプリの治療効果、通話中の効果、長期的な改善を証明するものではありません。吃音の回数だけでなく、負担や自然さ、伝えたい内容を話せたかも確認してください。合わない場合は補助を停止できます。
-</p>
-<p class="hint">
-出典の確認日：2026-10-08。リンク先の抄録と取得できた本文を基に要約しています。研究の対象・課題・装置は本アプリと異なります。本アプリは診断や治療を行うものではなく、効果を保証しません。
-</p>
+<p><strong>専門機関の見解：</strong>米国言語聴覚学会（ASHA）の臨床資料は、吃音の回数だけでなく、話す負担、回避、コミュニケーションや生活の質も考えることを重視しています。これはStutterSuiteの有効性を認定する資料ではありません。<a href="https://www.asha.org/practice-portal/clinical-topics/fluency-disorders/" target="_blank" rel="noopener noreferrer">ASHA Practice Portal ↗</a></p>
+<p><strong>本アプリの検証範囲：</strong>StutterSuite自体について臨床試験は行っていません。研究の機器・遅延・音量・言語・発話場面はアプリと異なります。自分で条件を比較するときも、吃音の回数だけでなく負担や自然さ、伝えたい内容を話せたかを確認してください。補助が合わなければ停止できます。</p>
+<p class="hint">出典の確認日：2026-10-12。リンク先の抄録と閲覧可能な本文を基に要約しました。研究の詳細な書誌情報・記述方針は<a href="https://github.com/xer5xer5/stuttersuite-oss/blob/main/EVIDENCE_JA.md" target="_blank" rel="noopener noreferrer">研究資料の一覧（リポジトリ）</a>にもまとめています。なお、リンク先は公開版へマージ後に閲覧できます。本アプリは診断や治療を行うものではなく、効果を保証しません。</p>
 </section>
 <section class="panel guide-section" id="guide-faq" aria-labelledby="guideFaqTitle">
 <h2 id="guideFaqTitle">
