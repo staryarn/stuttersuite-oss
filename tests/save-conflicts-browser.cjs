@@ -24,6 +24,8 @@ module.exports=async function verifySaveConflicts(origin){
     assert.equal(await js(b,`return exportedCandidate.contents.script==='Bの未保存原稿。'&&exportedCandidate.contents.ttsRate===1.7&&exportedCandidate.contents.profiles.length===0&&exportedCandidate.contents.schema_version===6&&audio.running;`),true,'repeated failed field saves preserve the local candidate for actual backup UI');
     assert.equal(await saved(b),latest,'exporting a local candidate does not change saved contents');
     const output=path.join(__dirname,'../.test-output');fs.mkdirSync(output,{recursive:true});
+    await js(b,`await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));`);
+    assert.equal(await js(b,`return document.querySelector('#storageNotice').getBoundingClientRect().height>0;`),true,'desktop conflict notice is displayed');
     fs.writeFileSync(path.join(output,'save-conflict-desktop.png'),(await b.webContents.capturePage()).toPNG());
     b.setSize(390,844);await js(b,`await new Promise(requestAnimationFrame);`);
     assert.equal(await js(b,`return document.documentElement.scrollWidth<=innerWidth;`),true,'conflict notice fits mobile width');
