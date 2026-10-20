@@ -169,21 +169,19 @@
   }
   q('#updateProfile').onclick=()=>openSave('update');
   q('#cancelProfile').onclick=q('#cancelProfileTop').onclick=()=>q('#profileDialog').close();
-  q('#profileForm').onsubmit=event=>{
+  q('#profileForm').onsubmit=async event=>{
     event.preventDefault();const name=q('#profileName').value.trim();if(!name){q('#profileDialogMessage').textContent='名前を入力してください。';q('#profileName').focus();return;}
-    const candidate=clone(data),existing=selectedProfile(),id=saveMode==='update'&&existing?existing.id:crypto.randomUUID();
+    const existing=selectedProfile(),updating=saveMode==='update'&&existing,id=updating?existing.id:crypto.randomUUID();
     const profile={id,name,scene:q('#profileScene').value,favorite:q('#profileFavorite').checked,condition:currentCondition()};
-    if(saveMode==='update'&&existing)candidate.profiles[candidate.profiles.findIndex(p=>p.id===id)]=profile;else candidate.profiles.push(profile);
-    if(!commitData(candidate)){q('#profileDialogMessage').textContent='保存できませんでした。入力内容は残っています。機器・データから現在の内容を書き出せます。';return;}
+    if(!await commitData(current=>{const candidate=clone(current),index=candidate.profiles.findIndex(p=>p.id===id);if(updating&&index>=0)candidate.profiles[index]=profile;else candidate.profiles.push(profile);return candidate;})){q('#profileDialogMessage').textContent='保存できませんでした。入力内容は残っています。機器・データから現在の内容を書き出せます。';return;}
     activeProfile=id;activeConditionName=name;renderProfiles();loaded();q('#profileDialog').close();toast(saveMode==='update'?'保存設定を更新しました。':'新しい設定として保存しました。');
   };
-  q('#profileCards').addEventListener('click',event=>{
+  q('#profileCards').addEventListener('click',async event=>{
     const id=event.target.dataset.favorite||event.target.dataset.deleteProfile;if(!id)return;
     const profile=data.profiles.find(p=>p.id===id);if(!profile)return;
-    const candidate=clone(data);
-    if(event.target.dataset.favorite)candidate.profiles.find(p=>p.id===id).favorite=!profile.favorite;
-    else {if(!confirm('「'+profile.name+'」を削除しますか？ 使用記録と画面上の値は残ります。'))return;candidate.profiles=candidate.profiles.filter(p=>p.id!==id);}
-    if(!commitData(candidate))return;
+    const favorite=!!event.target.dataset.favorite;
+    if(!favorite&&!confirm('「'+profile.name+'」を削除しますか？ 使用記録と画面上の値は残ります。'))return;
+    if(!await commitData(current=>{const candidate=clone(current),item=candidate.profiles.find(p=>p.id===id);if(favorite&&item)item.favorite=!item.favorite;else if(!favorite)candidate.profiles=candidate.profiles.filter(p=>p.id!==id);return candidate;}))return;
     if(!data.profiles.some(p=>p.id===activeProfile)&&activeProfile===id)activeProfile='';
     renderProfiles();sync();
   });
@@ -196,7 +194,7 @@
     ['playPhrase','repeatPhrase','compactPlay'].forEach(id=>q('#'+id).disabled=stale||!data.phrases.length);
   }
   function canPlay(){if(q('#scriptText').value!==splitSource){toast('原稿が変更されています。句を更新してから再生してください。');return false;}return true;}
-  ['splitScript','saveScript'].forEach(id=>q('#'+id).addEventListener('click',()=>{if(q('#scriptText').value===data.script){splitSource=data.script;scriptState();}}));
+  function scriptSaved(){splitSource=data.script;scriptState();}
   q('#sampleScript').onclick=()=>{if(q('#scriptText').value&&!confirm('編集中の原稿を例文に置き換えますか？'))return;q('#scriptText').value='本日はお時間をいただき、ありがとうございます。\nまず、今回の予定をお伝えします。\nご質問があれば、お知らせください。';q('#scriptText').dispatchEvent(new Event('input'));};
   q('#readingView').onclick=()=>{const reading=q('#page-script').classList.toggle('reading-mode');q('#readingView').setAttribute('aria-pressed',String(reading));q('#readingView').textContent=reading?'編集表示':'原稿表示';};
 
@@ -236,15 +234,15 @@
   }
   function endSession(reason){if(!currentSession)return;conditionChanged();currentSession.session.endedAt=new Date().toISOString();currentSession.session.reason=reason;pendingSessions.push(currentSession);currentSession=null;updateSessionChoices();}
   function resetRatings(){['effort','naturalness'].forEach(id=>{q('#'+id).value='5';q('#'+id+'Out').textContent='—';});q('#wouldUse').value='';q('#sessionNote').value='';}
-  function saveReflection(){
+  async function saveReflection(){
     const target=reflectionTarget(),condition=clone(target?.condition||sessionConditionSnapshot||currentCondition());
     const s=target?clone(target.session):{id:crypto.randomUUID(),startedAt:'',endedAt:'',kind:'manual',reason:'record',scene:'',segments:[]};
-    if(target===currentSession)conditionChanged();
-    if(target===currentSession)s.segments=clone(currentSession.session.segments);
+    if(target&&target===currentSession)conditionChanged();
+    if(target&&target===currentSession)s.segments=clone(currentSession.session.segments);
     s.scene=q('#sessionScene').value;if(!s.endedAt)s.endedAt=new Date().toISOString();
     const reflection={id:crypto.randomUUID(),at:now(),profile:target?.name||activeConditionName,conditionSnapshot:condition,session:s,effort:q('#effortOut').textContent==='—'?null:Number(q('#effort').value),naturalness:q('#naturalnessOut').textContent==='—'?null:Number(q('#naturalness').value),wouldUse:q('#wouldUse').value,note:q('#sessionNote').value};
-    if(!commitData({...data,reflections:[...data.reflections,reflection]}))return;
-    if(target===currentSession){currentSession=null;sessionConditionSnapshot=null;continueSession();}
+    if(!await commitData(current=>({...current,reflections:[...current.reflections,reflection]})))return;
+    if(target&&target===currentSession){currentSession=null;sessionConditionSnapshot=null;continueSession();}
     else pendingSessions=pendingSessions.filter(item=>item!==target);
     resetRatings();chosenSession='';updateSessionChoices();renderHistory();toast('設定と振り返りを保存しました。');
   }
@@ -320,7 +318,7 @@
     q('#focusControl').hidden=q('#readFullGuide').hidden=true;q('#guideDrawer').hidden=false;q('.app-shell').classList.add('help-open');all('.highlight-control').forEach(node=>node.classList.remove('highlight-control'));q('#'+walkthrough[index][2]).classList.add('highlight-control');next.focus({preventScroll:true});
   }
   q('#startWalkthrough').onclick=()=>showWalkthrough(0);
-  window.workspace={sync,loaded,openSave,beginSession,endSession,conditionChanged,saveReflection,renderHistory,scriptState,canPlay,captureTrial,trialCondition:id=>clone(trialSnapshots[id]),showTrial,
+  window.workspace={sync,loaded,openSave,beginSession,endSession,conditionChanged,saveReflection,renderHistory,scriptState,scriptSaved,canPlay,captureTrial,trialCondition:id=>clone(trialSnapshots[id]),showTrial,
     closeHelp(){closeInfo();closeDrawer();},
     dismissEscape(){if(q('#profileDialog').open){q('#profileDialog').close();return true;}if(!popover.hidden){closeInfo(true);return true;}if(!q('#guideDrawer').hidden){closeDrawer(true);return true;}return false;},
     navigating(page){const current=q('.page.active')?.id.replace('page-','');if(page==='guide'&&current!=='guide')guideReturn=current||'assist';closeInfo();if(page!=='assist'&&drawerHelp===null)closeDrawer();},

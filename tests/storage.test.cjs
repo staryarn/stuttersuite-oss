@@ -1,0 +1,83 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+const test = require('node:test'), assert = require('node:assert/strict');
+const Store = require('../storage.js');
+function fixture() {
+  const values = new Map();
+  const storage = {getItem(key) { return values.get(key) ?? null; }, setItem(key, value) { values.set(key, value); }, removeItem(key) { values.delete(key); }};
+  let tail = Promise.resolve();
+  const locks = {request(_name, _options, action) { const work = tail.then(action); tail = work.catch(() => {}); return work; }};
+  const client = onInvalidate => new Store({storage, locks, onInvalidate});
+  return {values, storage, locks, client};
+}
+function deferred() { let resolve; const promise = new Promise(yes => resolve = yes); return {promise, resolve}; }
+test('reads legacy JSON without rewriting it; new snapshots preserve backup contents', async () => {
+  const f = fixture(), raw = JSON.stringify({script:'原稿',phrases:[{text:'句'}],profiles:[]});
+  f.storage.setItem(Store.legacyKey, raw);
+  const client = f.client(); assert.equal(client.initial.value, raw); assert.equal(f.values.size, 1);
+  await client.write(raw);
+  assert.equal(f.client().initial.value, raw);
+  assert.equal(JSON.parse(f.storage.getItem(Store.key)).value, raw);
+});
+test('queued save → delete → stale save is ordered, and the stale payload is never evaluated', async () => {
+  const f = fixture(), first = f.client(), deleting = f.client(); let invalidations=0, prepared=0;
+  const stale = f.client(() => invalidations++), hold=deferred();
+  const barrier=f.locks.request(Store.key,{},()=>hold.promise);
+  const before=first.write('before-delete');
+  const deletion=deleting.clear();
+  const after=assert.rejects(stale.write(()=>{prepared++;return 'must not return';}),{name:'AbortError'});
+  hold.resolve(); await barrier; await before; await deletion; await after;
+  assert.equal(prepared,0);assert.equal(invalidations,1);assert.equal(f.client().initial.value,null);
+  assert.equal(f.storage.getItem(Store.legacyKey),null);
+  assert.ok(!f.storage.getItem(Store.key).includes('before-delete'));
+});
+test('a suspended client is rejected without receiving any storage event; a new explicit restore works', async () => {
+  const f=fixture(), old=f.client(), deleting=f.client();
+  const epoch=old.epoch;await deleting.clear();
+  await assert.rejects(old.write('old import',epoch),{name:'AbortError'});
+  const current=f.client();await current.write('explicit newly selected backup');
+  assert.equal(f.client().initial.value,'explicit newly selected backup');
+  // An uncooperative legacy tab must never trigger automatic re-import.
+  await f.client().clear();f.storage.setItem(Store.legacyKey,'legacy tab wrote again');
+  assert.equal(f.client().initial.value,null);
+});
+test('delete before a delayed restore rejects it even if the client was already checked', async () => {
+  const f=fixture(), restoring=f.client();assert.equal(restoring.current(),true);
+  const epoch=restoring.epoch;await f.client().clear();
+  await assert.rejects(restoring.write('late file read',epoch),{name:'AbortError'});
+  assert.equal(f.client().initial.value,null);
+});
+test('writes publish state inside the lock, preserving different queued field updates', async () => {
+  const f=fixture(), client=f.client();let state={script:'',ttsRate:1.2,records:[]};
+  const write=update=>{let prepared;return client.write(()=>JSON.stringify(prepared=update(state)),client.epoch,()=>state=prepared);};
+  await Promise.all([write(current=>({...current,ttsRate:1.5})),write(current=>({...current,script:'new draft'})),write(current=>({...current,ttsRate:1.8})),write(current=>({...current,records:[...current.records,'record']}))]);
+  assert.deepEqual(state,{script:'new draft',ttsRate:1.8,records:['record']});
+  assert.deepEqual(JSON.parse(f.client().initial.value),state);
+});
+test('quota failure preserves the previous snapshot and does not publish a failed candidate', async () => {
+  const f=fixture(), client=f.client();await client.write('original');let published=false;
+  const raw=f.storage.getItem(Store.key);f.storage.setItem=()=>{throw Object.assign(Error('full'),{name:'QuotaExceededError'});};
+  await assert.rejects(client.write('candidate',client.epoch,()=>published=true),{name:'QuotaExceededError'});
+  await assert.rejects(client.clear(),{name:'QuotaExceededError'});
+  assert.equal(published,false);assert.equal(f.storage.getItem(Store.key),raw);assert.equal(client.invalidated,false);
+});
+test('a failed legacy cleanup reports failure but the tombstone still prevents re-import', async () => {
+  const f=fixture();f.storage.setItem(Store.legacyKey,'private legacy text');const client=f.client();
+  f.storage.removeItem=()=>{throw Object.assign(Error('blocked'),{name:'SecurityError'});};
+  await assert.rejects(client.clear(),{name:'SecurityError'});
+  assert.equal(client.invalidated,true);assert.equal(f.client().initial.value,null);
+});
+test('no lock support means read-only; neither saving nor deleting claims success', async () => {
+  const f=fixture();f.storage.setItem(Store.legacyKey,'legacy');const client=new Store({storage:f.storage,locks:{}});
+  assert.equal(client.initial.value,'legacy');await assert.rejects(client.write('no'),{name:'NotSupportedError'});
+  await assert.rejects(client.clear(),{name:'NotSupportedError'});assert.equal(f.values.size,1);
+});
+test('unreadable envelope stays recoverable and a deliberate replacement repairs it', async () => {
+  const f=fixture();f.storage.setItem(Store.key,'{broken');const client=f.client();
+  assert.equal(client.initial.damaged,true);assert.equal(client.initial.value,'{broken');
+  await client.write('validated replacement');assert.equal(f.client().initial.value,'validated replacement');
+});
+test('clearing the browser storage after a new snapshot invalidates cached state', async () => {
+  const f=fixture();let invalidations=0;const client=f.client(()=>invalidations++);await client.write('original');
+  f.values.clear();assert.equal(client.current(),false);assert.equal(invalidations,1);
+  await assert.rejects(client.write('old memory'),{name:'AbortError'});
+});

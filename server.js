@@ -5,7 +5,7 @@ const {execFile} = require('node:child_process');
 const securityHeaders = require('./vercel.json').headers[0].headers;
 const root = __dirname;
 const types = {'.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.mjs': 'text/javascript'};
-const allowed = new Set(['index.html', 'about.html', 'about.css', 'LICENSE', 'styles.css', 'compact.css', 'compact.js', 'app.js', 'workspace.js', 'audio-engine.js', 'pitch-worklet.js', 'pitch-core.mjs']);
+const allowed = new Set(['index.html', 'about.html', 'about.css', 'LICENSE', 'styles.css', 'compact.css', 'compact.js', 'app.js', 'storage.js', 'workspace.js', 'audio-engine.js', 'pitch-worklet.js', 'pitch-core.mjs']);
 function createServer() {
   return http.createServer((request, response) => {
     for (const header of securityHeaders) response.setHeader(header.key, header.value);

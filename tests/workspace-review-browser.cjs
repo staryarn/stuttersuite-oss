@@ -25,13 +25,13 @@ module.exports=async function verifyWorkspaceReview(run,window){
   await check(`currentCondition().branches[0].delay===50&&data.profiles[0].condition.branches[0].delay===50`,'restored draft keeps the original revert target and does not update saved data');
   await execute(`reviewSet('delayA',120);await reviewCompare('@draft','baseline');await reviewFinish();await reviewCompare('@draft','baseline');`);
   await check(`currentCondition().branches[0].delay===120`,'early exit and a new comparison preserve the same draft');
-  await execute(`await reviewFinish();workspace.reset();await applyProfile('review-preset');await reviewCompare('review-preset','baseline');await startAssist();document.querySelector('#saveReflection').click();`);
+  await execute(`await reviewFinish();workspace.reset();await applyProfile('review-preset');await reviewCompare('review-preset','baseline');await startAssist();await document.querySelector('#saveReflection').onclick();`);
   await check(`!!data.reflections.at(-1).session.comparisonId&&data.reflections.at(-1).session.comparisonIndex===0`,'unchanged comparison use retains its comparison association');
 
   // Changes must be visible and must not count as the originally fixed comparison condition.
   await execute(`globalThis.reviewValidComparison=data.reflections.at(-1).session.comparisonId;reviewSet('delayA',75);`);
   await check(`document.querySelector('#trialBarTitle').textContent.includes('比較条件から変更あり')&&!document.querySelector('#trialChangeNotice').hidden`,'live edits visibly flag comparison deviation');
-  await execute(`document.querySelector('#saveReflection').click();`);
+  await execute(`await document.querySelector('#saveReflection').onclick();`);
   await check(`!data.reflections.at(-1).session.comparisonId&&data.reflections.at(-1).session.segments.length===2&&data.reflections.at(-1).conditionSnapshot.branches[0].delay===50&&data.reflections.at(-1).session.segments.at(-1).condition.branches[0].delay===75&&data.reflections.at(-2).session.comparisonId===reviewValidComparison`,'mixed use is separate from fixed comparison results without rewriting earlier records');
   await execute(`reviewSet('delayA',50);`);
   await check(`document.querySelector('#trialBarTitle').textContent.includes('比較条件から変更あり')`,'returning to the old value does not erase the fact that the phase was edited');
@@ -41,14 +41,14 @@ module.exports=async function verifyWorkspaceReview(run,window){
   await check(`!document.querySelector('#trialBarTitle').textContent.includes('変更あり')`,'advancing starts the next fixed phase without a false deviation');
   await execute(`await reviewFinish();workspace.reset();await applyProfile('review-preset');await reviewCompare('review-preset','baseline');await applyProfile('review-other');`);
   await check(`!document.querySelector('#trialChangeNotice').hidden`,'loading a different saved preset also flags comparison deviation');
-  await execute(`await startAssist();document.querySelector('#saveReflection').click();`);
+  await execute(`await startAssist();await document.querySelector('#saveReflection').onclick();`);
   await check(`!data.reflections.at(-1).session.comparisonId&&data.reflections.at(-1).conditionSnapshot.masterGain===-35`,'a different loaded preset is recorded independently');
   await execute(`await reviewFinish();workspace.reset();await applyProfile('review-preset');`);
 
   // Discard only the selected use, then continue tracking a still-running engine.
   await execute(`await startAssist();reviewSet('delayA',75);globalThis.reviewDiscardedId=document.querySelector('#reflectionSession').value;globalThis.reviewSavedCount=data.reflections.length;document.querySelector('#skipReflection').click();`);
   await check(`audio.running&&document.querySelector('#reflectionSession').value!==reviewDiscardedId&&document.querySelector('#reflectionContext').textContent.includes('使用中')`,'discarding current audio use starts a fresh tracked use without stopping audio');
-  await execute(`reviewSet('masterGain',-31);await muteAssist();document.querySelector('#saveReflection').click();`);
+  await execute(`reviewSet('masterGain',-31);await muteAssist();await document.querySelector('#saveReflection').onclick();`);
   await check(`data.reflections.length===reviewSavedCount+1&&data.reflections.at(-1).session.kind==='audio'&&data.reflections.at(-1).session.id!==reviewDiscardedId&&data.reflections.at(-1).conditionSnapshot.branches[0].delay===75&&data.reflections.at(-1).session.segments.length===2&&data.reflections.at(-1).session.segments.at(-1).condition.masterGain===-31`,'continued use retains its new start and later setting changes');
 
   // TTS-only use must continue as TTS rather than becoming a manual memo.
@@ -56,7 +56,7 @@ module.exports=async function verifyWorkspaceReview(run,window){
     workspace.reset();data.script='試験文。';data.phrases=splitPhrases(data.script);document.querySelector('#scriptText').value=data.script;workspace.reset();renderPhrases();
     globalThis.reviewVoices=speechSynthesis.getVoices;globalThis.reviewSpeak=speechSynthesis.speak;globalThis.reviewUtterance=window.SpeechSynthesisUtterance;
     speechSynthesis.getVoices=()=>[{name:'review-local',localService:true,lang:'ja-JP'}];speechSynthesis.speak=()=>{};window.SpeechSynthesisUtterance=class{constructor(text){this.text=text;}};
-    loadVoices();playPhrase({skipCountdown:true});document.querySelector('#skipReflection').click();reviewSet('ttsRate',1.5);stopTts();document.querySelector('#saveReflection').click();
+    loadVoices();playPhrase({skipCountdown:true});document.querySelector('#skipReflection').click();reviewSet('ttsRate',1.5);stopTts();await document.querySelector('#saveReflection').onclick();
   `);
   await check(`data.reflections.at(-1).session.kind==='script'&&data.reflections.at(-1).session.segments.length===2&&data.reflections.at(-1).session.segments.at(-1).condition.choral.rate===1.5`,'discarded TTS use resumes with later rate changes');
   await execute(`speechSynthesis.getVoices=reviewVoices;speechSynthesis.speak=reviewSpeak;window.SpeechSynthesisUtterance=reviewUtterance;workspace.reset();await applyProfile('review-preset');`);
@@ -69,7 +69,7 @@ module.exports=async function verifyWorkspaceReview(run,window){
   await execute(`document.querySelector('#revertCondition').click();`);
   await check(`currentCondition().branches[0].delay===75`,'disabled revert cannot overwrite the pending start condition');
   // Also guard a programmatic edit that bypasses disabled native controls.
-  await execute(`reviewSet('delayA',120);reviewResolveCapture(reviewCaptureStream.clone());await reviewStarting;globalThis.reviewStartedSnapshot=structuredClone(sessionConditionSnapshot);document.querySelector('#saveReflection').click();`);
+  await execute(`reviewSet('delayA',120);reviewResolveCapture(reviewCaptureStream.clone());await reviewStarting;globalThis.reviewStartedSnapshot=structuredClone(sessionConditionSnapshot);await document.querySelector('#saveReflection').onclick();`);
   await check(`audio.running&&currentCondition().branches[0].delay===75&&reviewStartedSnapshot.branches[0].delay===75&&data.reflections.at(-1).conditionSnapshot.branches[0].delay===75&&data.reflections.at(-1).session.segments[0].condition.branches[0].delay===75&&!document.querySelector('#delayA').disabled&&!document.querySelector('#delayANumber').disabled&&!document.querySelector('#revertCondition').disabled&&['masterGainNumber','ttsRateNumber','choralCountdownNumber','phrasePauseNumber','compactGain','compactRate'].every(id=>!document.querySelector('#'+id).disabled)`,'ready audio, displayed controls and recorded start all match the requested snapshot, controls restored');
   await execute(`await muteAssist();workspace.reset();navigator.mediaDevices.getUserMedia=()=>new Promise(resolve=>globalThis.reviewResolveCancelled=resolve);globalThis.reviewCancelled=startAssist();await reviewWait(()=>!!globalThis.reviewResolveCancelled);await emergencyStop({broadcast:false});`);
   await check(`!document.querySelector('#delayA').disabled&&!document.querySelector('#masterGain').disabled&&['masterGainNumber','ttsRateNumber','choralCountdownNumber','phrasePauseNumber','compactGain','compactRate'].every(id=>!document.querySelector('#'+id).disabled)`,'cancelling a pending start releases the temporary control lock on all inputs');

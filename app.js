@@ -3,7 +3,8 @@
 // StutterSuite browser app — local audio processing, no automatic recording.
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
-const STORE = 'stuttersuite.public.v1';
+const STORE = StutterSuiteStorage.key;
+let localData, pendingSaves = 0;
 const SCHEMA_VERSION = 6;
 const defaultProfiles = [
   {id:'meeting', name:'会議用', scene:'通話・会議', condition:{mode:'custom',branches:[{enabled:true,delay:50,pitch:0,gain:0,pan:'both'},{enabled:false,delay:200,pitch:0,gain:-6,pan:'both'}],masterGain:0,masking:{enabled:false,type:'white',gain:-42,filter:'none'},direct:{enabled:false,gain:-18,pan:'both'},metronome:{enabled:false,bpm:60,type:'visual'},choral:{continuous:false,countdown:0,rate:1.2,pause:0}}},
@@ -13,7 +14,9 @@ const LIMITS = Object.freeze({fileBytes: 2 * 1024 * 1024, script: 50000, profile
 let data, recoveryRaw = null, storageBlocked = false, storageMessage = '', unsavedCandidate = null;
 function emptyData(){return {schema_version:SCHEMA_VERSION,profiles:[],script:'',phrases:[],reflections:[],ttsRate:1.2};}
 try {
-  recoveryRaw = localStorage.getItem(STORE);
+  localData = new StutterSuiteStorage({onInvalidate:()=>reloadAfterReset("StutterSuiteの保存データの削除・変更を検知したため、このタブも停止して再読み込みしました。")});
+  recoveryRaw = localData.initial.value;
+  if(localData.initial.damaged)throw Error("保存領域の形式が不正です。");
   if (recoveryRaw?.length > LIMITS.fileBytes) throw Error('保存データが大きすぎます。');
   data = recoveryRaw ? JSON.parse(recoveryRaw) : emptyData();
 } catch { storageBlocked = true; storageMessage = '保存データを読み込めませんでした。元データは上書きせずに残しています。元データを書き出してから、正常なバックアップの復元またはデータの削除を行ってください。'; data = emptyData(); }
@@ -117,14 +120,25 @@ let speechToken = 0, advanceTimer = null;
 
 function publicData(){const {schema_version,profiles,script,phrases,reflections,ttsRate}=data;return {schema_version:SCHEMA_VERSION,profiles,script,phrases,reflections,ttsRate};}
 function showStorageNotice(message){$('#storageNotice').hidden=false;$('#storageMessage').textContent=message;$('#exportRecovery').hidden=recoveryRaw===null;}
-function commitData(candidate,{replaceRecovery=false}={}){
+async function commitData(candidate,{replaceRecovery=false,epoch=localData?.epoch}={}){
   if(storageBlocked&&!replaceRecovery){showStorageNotice(storageMessage);return false;}
-  let prepared;
-  try {prepared=prepareData(candidate);localStorage.setItem(STORE,JSON.stringify(prepared));data=prepared;unsavedCandidate=null;storageBlocked=false;recoveryRaw=null;$('#storageNotice').hidden=true;return true;}
-  catch(error){if(prepared&&!replaceRecovery)unsavedCandidate=prepared;showStorageNotice(error.name==='QuotaExceededError'||error.name==='SecurityError'?'保存できませんでした。空き容量やブラウザの設定を確認し、現在の内容をバックアップに書き出してください。':error.message||'保存できませんでした。入力した内容は画面上に残っています。');return false;}
+  let prepared;pendingSaves++;
+  try {
+    if(!localData)throw Error('保存領域にアクセスできません。ブラウザの設定を確認してください。');
+    const savedEpoch=await localData.write(()=>{
+      prepared=prepareData(typeof candidate==='function'?candidate(data):candidate);
+      return JSON.stringify(prepared);
+    },epoch,()=>{data=prepared;unsavedCandidate=null;storageBlocked=false;recoveryRaw=null;});
+    if(!localData.current(savedEpoch))return false;
+    $('#storageNotice').hidden=true;return true;
+  }catch(error){
+    if(error.name==='AbortError'||localData?.invalidated)return false;
+    if(prepared&&!replaceRecovery)unsavedCandidate=prepared;
+    showStorageNotice(error.name==='QuotaExceededError'||error.name==='SecurityError'?'保存できませんでした。空き容量やブラウザの設定を確認し、現在の内容をバックアップに書き出してください。':error.message||'保存できませんでした。入力した内容は画面上に残っています。');return false;
+  }finally{pendingSaves--;}
 }
 function persist(){return commitData(data);}
-function backupContents(){return unsavedCandidate??publicData();}
+function backupContents(){return checkSavedData()?(unsavedCandidate??publicData()):undefined;}
 function toast(message){ const node=$('#toast'); node.textContent=message; node.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>node.classList.remove('show'),3500); }
 function now(){ return new Date().toLocaleString('ja-JP',{dateStyle:'medium',timeStyle:'short'}); }
 function setStatus(kind, state, text){ const n=$(`#${kind}Status`); n.className=`status ${state}`; n.replaceChildren(document.createElement('i'),document.createTextNode(text));window.workspace?.sync(); }
@@ -151,7 +165,7 @@ async function applyProfile(id){const p=id==='baseline'?{name:'補助なし',con
 function currentCondition(){return normalizeCondition({mode:'custom',branches:[{enabled:$('#branchAEnabled').checked,delay:$('#delayA').value,pitch:$('#pitchA').value,gain:$('#gainA').value,pan:$('#panA').value},{enabled:$('#branchBEnabled').checked,delay:$('#delayB').value,pitch:$('#pitchB').value,gain:$('#gainB').value,pan:$('#panB').value}],masterGain:$('#masterGain').value,masking:{enabled:$('#maskingEnabled').checked,type:$('#maskingType').value,gain:$('#maskingGain').value,filter:$('#maskingFilter').value},direct:{enabled:$('#directEnabled').checked,gain:$('#directGain').value,pan:$('#directPan').value},metronome:{enabled:$('#metroEnabled').checked,bpm:$('#bpm').value,type:$('#metroType').value},choral:{continuous:$('#continuousChoral').checked,countdown:$('#choralCountdown').value,rate:$('#ttsRate').value,pause:$('#phrasePause').value}});}
 function applyCondition(condition){const c=condition.mode==='none'?withoutAssistance(condition):normalizeCondition(condition);[['A',c.branches[0]],['B',c.branches[1]]].forEach(([name,b])=>{$(`#branch${name}Enabled`).checked=b.enabled;$(`#delay${name}`).value=b.delay;$(`#pitch${name}`).value=b.pitch;$(`#gain${name}`).value=b.gain;$(`#pan${name}`).value=b.pan;});$('#masterGain').value=c.masterGain;$('#maskingEnabled').checked=c.masking.enabled;$('#maskingType').value=c.masking.type;$('#maskingGain').value=c.masking.gain;$('#maskingFilter').value=c.masking.filter;$('#directEnabled').checked=c.direct.enabled;$('#directGain').value=c.direct.gain;$('#directPan').value=c.direct.pan;$('#metroEnabled').checked=c.metronome.enabled;$('#bpm').value=c.metronome.bpm;$('#metroType').value=c.metronome.type;$('#continuousChoral').checked=c.choral.continuous;$('#choralCountdown').value=c.choral.countdown;$('#phrasePause').value=c.choral.pause;setTtsRate(c.choral.rate,false);syncControls();refreshAudio();}
 function syncControls(){ ['pitchA','pitchB','delayA','delayB','gainA','gainB','bpm','masterGain','ttsRate','phrasePause','maskingGain','directGain','choralCountdown'].forEach(id=>{const unit=id.startsWith('pitch')?' 半音':id.startsWith('delay')?' ms':id.startsWith('gain')||id==='masterGain'||id==='maskingGain'||id==='directGain'?' dB':id==='bpm'?' BPM':id==='ttsRate'?' 倍':id==='choralCountdown'||id==='phrasePause'?' 秒':'';const label=id==='phrasePause'?'pause':id;const out=$(`#${label}Value`);if(out)out.textContent=`${Number($(`#${id}`).value).toFixed(id==='ttsRate'?2:id==='phrasePause'||id.startsWith('pitch')?1:0)}${unit}`;});$('#latencyReadout').textContent=['A','B'].filter(n=>$('#branch'+n+'Enabled').checked).map(n=>`${n}: ${$('#delay'+n).value} ms`).join(' ／ ')||'なし';const shifted=['A','B'].some(n=>$('#branch'+n+'Enabled').checked&&Number($('#pitch'+n).value)!==0),rate=audio.context?.sampleRate;$('#pitchLatencyReadout').textContent=shifted?(rate?`${(896000/rate).toFixed(1)}〜${(1024000/rate).toFixed(1)} ms（処理バッファの目安）`:'約19〜23 ms（44.1／48 kHz時の目安）'):'なし（0半音はバイパス）';window.workspace?.sync();}
-function setTtsRate(value,save=true){const input=value==null?NaN:Number(value),rate=Math.round(Math.min(2,Math.max(.5,Number.isFinite(input)?input:1.2))*20)/20;data.ttsRate=rate;['ttsRate','compactRate'].forEach(id=>$(`#${id}`).value=String(rate));['ttsRateValue','compactRateValue'].forEach(id=>$(`#${id}`).textContent=`${rate.toFixed(2)} 倍`);if(save)persist();window.workspace?.sync();}
+function setTtsRate(value,save=true){const input=value==null?NaN:Number(value),rate=Math.round(Math.min(2,Math.max(.5,Number.isFinite(input)?input:1.2))*20)/20;if(!save)data.ttsRate=rate;['ttsRate','compactRate'].forEach(id=>$(`#${id}`).value=String(rate));['ttsRateValue','compactRateValue'].forEach(id=>$(`#${id}`).textContent=`${rate.toFixed(2)} 倍`);if(save)commitData(current=>({...current,ttsRate:rate}));window.workspace?.sync();}
 function gain(value){return Math.pow(10,Number(value)/20);}
 
 async function enumerateDevices(){
@@ -161,6 +175,7 @@ async function enumerateDevices(){
 }
 let prepareRequest=0;
 async function prepareAudio(){
+  if(!checkSavedData())return false;
   if(!navigator.mediaDevices?.getUserMedia){$('#audioMessage').textContent='このブラウザはマイク入力に対応していません。';return false;}
   const request=++prepareRequest,generation=assistRequest,current=()=>request===prepareRequest&&generation===assistRequest;
   if(!audio.running&&!audio.starting)setStatus('mic','waiting','マイク: 確認中');
@@ -169,6 +184,7 @@ async function prepareAudio(){
 }
 async function clearAudio(){const request=++assistRequest;await audio.stop();return request===assistRequest;}
 async function startAssist(){
+  if(!checkSavedData())return;
   if(audio.running||audio.starting)return;if(!navigator.mediaDevices?.getUserMedia){toast('このブラウザではライブ補助を利用できません。');return;}
   const request=++assistRequest;
   try{
@@ -176,7 +192,7 @@ async function startAssist(){
     const condition=currentCondition();
     const starting=audio.start({inputDeviceId:$('#inputDevice').value,outputDeviceId:$('#outputDevice').value,settings:condition});
     window.workspace?.sync();$('#audioMessage').textContent='補助の開始を待っています。開始中は設定を変更できません。「すべて停止」で取り消せます。';
-    const result=await starting;if(request!==assistRequest)return;
+    const result=await starting;if(!checkSavedData()||request!==assistRequest)return;
     // Native controls are frozen while starting; also reject edits made by a script.
     if(JSON.stringify(currentCondition())!==JSON.stringify(condition)){applyCondition(condition);if(request!==assistRequest||!audio.running)return;}
     sessionConditionSnapshot=JSON.parse(JSON.stringify(condition));window.workspace?.beginSession('audio',condition);setStatus('assist','running','補助: 動作中');setStatus('mic',audio.stream?'running':'idle',audio.stream?'マイク: 使用中':'マイク: 未使用');syncControls();$('#startAssist').disabled=true;$('#muteAssist').disabled=false;$('#audioMessage').textContent=result.warnings[0]||'補助音をヘッドホンに再生しています。通話相手への音声は、通話アプリ側でミュートしてください。読み上げ音声はOS／ブラウザの既定の出力先を使います。';
@@ -197,14 +213,14 @@ function renderPhrases(){const list=$('#phraseList');list.innerHTML='';phraseInd
 function updatePlayer(){const p=data.phrases[phraseIndex],n=data.phrases[phraseIndex+1];$('#currentPhrase').textContent=p?.reading||'—';$('#nextPhrase').textContent=n?.reading||'—';window.workspace?.scriptState();}
 function localVoices(){return speechSynthesis.getVoices().filter(voice=>voice.localService===true);}
 function loadVoices(){const voices=localVoices(),jp=voices.filter(v=>v.lang.toLowerCase().startsWith('ja')),all=jp.length?jp:voices,sel=$('#voiceSelect'),prev=sel.value;sel.innerHTML='';all.forEach(v=>sel.add(new Option(`${v.name} (${v.lang})`,v.name)));if(!all.length)sel.add(new Option('ローカル音声が利用できません',''));if([...sel.options].some(x=>x.value===prev))sel.value=prev;}
-function playPhrase({skipCountdown=false}={}){if(window.workspace&&!window.workspace.canPlay())return;const p=data.phrases[phraseIndex];if(!p){toast('まず原稿を句に分けてください。');return;}const voice=localVoices().find(v=>v.name===$('#voiceSelect').value);if(!voice){toast('ローカル音声が利用できないため、TTSは再生しません。');return;}pausePhrase();const token=speechToken,index=phraseIndex,start=()=>{if(token!==speechToken)return;const u=new SpeechSynthesisUtterance(p.reading);u.voice=voice;u.lang=voice.lang||'ja-JP';u.rate=Number($('#ttsRate').value);speaking=true;window.workspace?.beginSession('script');setStatus('tts','running','TTS: 再生中');u.onend=()=>{if(token!==speechToken)return;speaking=false;setStatus('tts','idle','TTS: 停止');if($('#continuousChoral').checked&&index<data.phrases.length-1){advanceTimer=setTimeout(()=>{advanceTimer=null;if(token!==speechToken)return;phraseIndex=index+1;renderPhrases();playPhrase({skipCountdown:true});},Number($('#phrasePause').value)*1000);}else if(!audio.running&&!audio.starting)window.workspace?.endSession('stop');};u.onerror=()=>{if(token===speechToken){speaking=false;setStatus('tts','idle','TTS: 停止');if(!audio.running&&!audio.starting)window.workspace?.endSession('stop');toast('読み上げを再生できませんでした。音声を選び直してください。');}};speechSynthesis.speak(u);};const countdown=!skipCountdown?Number($('#choralCountdown').value)*1000:0;if(countdown){setStatus('tts','waiting','TTS: 開始待ち');toast(`${countdown/1000} 秒後に読み上げます。`);advanceTimer=setTimeout(()=>{advanceTimer=null;start();},countdown);}else start();}
+function playPhrase({skipCountdown=false}={}){if(!checkSavedData())return;if(window.workspace&&!window.workspace.canPlay())return;const p=data.phrases[phraseIndex];if(!p){toast('まず原稿を句に分けてください。');return;}const voice=localVoices().find(v=>v.name===$('#voiceSelect').value);if(!voice){toast('ローカル音声が利用できないため、TTSは再生しません。');return;}pausePhrase();const token=speechToken,index=phraseIndex,start=()=>{if(!checkSavedData()||token!==speechToken)return;const u=new SpeechSynthesisUtterance(p.reading);u.voice=voice;u.lang=voice.lang||'ja-JP';u.rate=Number($('#ttsRate').value);speaking=true;window.workspace?.beginSession('script');setStatus('tts','running','TTS: 再生中');u.onend=()=>{if(token!==speechToken)return;speaking=false;setStatus('tts','idle','TTS: 停止');if($('#continuousChoral').checked&&index<data.phrases.length-1){advanceTimer=setTimeout(()=>{advanceTimer=null;if(token!==speechToken)return;phraseIndex=index+1;renderPhrases();playPhrase({skipCountdown:true});},Number($('#phrasePause').value)*1000);}else if(!audio.running&&!audio.starting)window.workspace?.endSession('stop');};u.onerror=()=>{if(token===speechToken){speaking=false;setStatus('tts','idle','TTS: 停止');if(!audio.running&&!audio.starting)window.workspace?.endSession('stop');toast('読み上げを再生できませんでした。音声を選び直してください。');}};speechSynthesis.speak(u);};const countdown=!skipCountdown?Number($('#choralCountdown').value)*1000:0;if(countdown){setStatus('tts','waiting','TTS: 開始待ち');toast(`${countdown/1000} 秒後に読み上げます。`);advanceTimer=setTimeout(()=>{advanceTimer=null;start();},countdown);}else start();}
 function pausePhrase(){speechToken++;if(advanceTimer!==null){clearTimeout(advanceTimer);advanceTimer=null;}speechSynthesis.cancel();speaking=false;setStatus('tts','idle','TTS: 停止');}
 function stopTts(){pausePhrase();if(!audio.running&&!audio.starting)window.workspace?.endSession('stop');}
 function nextPhrase(){pausePhrase();phraseIndex=Math.min(phraseIndex+1,Math.max(0,data.phrases.length-1));renderPhrases();}
 function previousPhrase(){pausePhrase();renderPhrases();}
 function renderHistory(){if(window.workspace){window.workspace.renderHistory();return;}const box=$('#historyList');box.replaceChildren();if(!data.reflections.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='まだ履歴はありません。';box.append(empty);return;}data.reflections.slice().reverse().forEach(r=>{const x=document.createElement('div');x.className='history-item';const name=document.createElement('strong'),detail=document.createElement('small'),note=document.createElement('div');name.textContent=r.profile;const condition=r.conditionSnapshot?` · 条件: ${conditionLabel(r.conditionSnapshot)}`:' · 開始時の設定なし（旧履歴）';detail.textContent=`${r.at}${condition} · 負担: ${r.effort??'未回答'} · 自然さ: ${r.naturalness??'未回答'} · 次も使う: ${{yes:'はい',unsure:'判断できない',no:'いいえ'}[r.wouldUse]||'未回答'}`;x.append(name,document.createElement('br'),detail);if(r.note){note.textContent=r.note;x.append(note);}box.append(x);});}
 function conditionLabel(condition){const c=normalizeCondition(condition),labels=[];if(c.branches.some(b=>b.enabled&&b.delay>0))labels.push('DAF');if(c.branches.some(b=>b.enabled&&b.pitch!==0))labels.push('FAF');if(c.branches.some(b=>b.enabled&&b.delay===0&&b.pitch===0))labels.push('自声モニター');if(c.masking.enabled)labels.push('マスキング');if(c.direct.enabled)labels.push('直接');if(c.metronome.enabled)labels.push('メトロノーム');if(c.choral.continuous)labels.push('斉読/TTS');return labels.join(' + ')||'補助なし';}
-function download(filename,obj){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);}
+function download(filename,obj){if(obj===undefined)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);}
 
 $$('.nav').forEach(b=>b.onclick=()=>go(b.dataset.page));$$('.goto').forEach(b=>b.onclick=()=>go(b.dataset.target));
 function saveCurrentProfile(){window.workspace?.openSave('copy');}
@@ -215,26 +231,52 @@ $('#profileCards').onclick=async e=>{const id=e.target.dataset.useProfile;if(id)
 ['branchAEnabled','branchBEnabled','panA','panB','maskingEnabled','maskingType','maskingFilter','directEnabled','directPan','metroEnabled','metroType','continuousChoral'].forEach(id=>{$(`#${id}`).onchange=e=>{syncControls();refreshAudio();};});
 $('#prepareAudio').onclick=prepareAudio;$('#startAssist').onclick=startAssist;$('#muteAssist').onclick=muteAssist;$('#emergency').onclick=emergencyStop;$('#applyPreset').onclick=()=>{$('#branchAEnabled').checked=true;$('#delayA').value=50;$('#pitchA').value=0;$('#pitchB').value=0;$('#branchBEnabled').checked=true;$('#delayB').value=200;$('#gainB').value=-6;syncControls();refreshAudio();toast('加工音声Aを50 ms、Bを200 msに設定しました。研究の機器や条件を再現した設定ではありません。');};
 $('#scriptText').value=data.script||'';$('#charCount').textContent=`${$('#scriptText').value.length.toLocaleString()} / 50,000 文字`;$('#scriptText').oninput=()=>{$('#charCount').textContent=`${$('#scriptText').value.length.toLocaleString()} / 50,000 文字`;pausePhrase();window.workspace?.scriptState();};
-$('#splitScript').onclick=()=>{const script=$('#scriptText').value;if(!commitData({...data,script,phrases:splitPhrases(script)}))return;pausePhrase();phraseIndex=0;renderPhrases();toast(`${data.phrases.length} 句に分けました。`);};
-$('#saveScript').onclick=()=>{const script=$('#scriptText').value;if(commitData({...data,script,phrases:splitPhrases(script)})){pausePhrase();phraseIndex=0;renderPhrases();toast('原稿と句をこの端末に保存しました。');}};
+$('#splitScript').onclick=async()=>{const script=$('#scriptText').value;if(!await commitData(current=>({...current,script,phrases:splitPhrases(script)})))return;pausePhrase();phraseIndex=0;renderPhrases();window.workspace?.scriptSaved();toast(`${data.phrases.length} 句に分けました。`);};
+$('#saveScript').onclick=async()=>{const script=$('#scriptText').value;if(await commitData(current=>({...current,script,phrases:splitPhrases(script)}))){pausePhrase();phraseIndex=0;renderPhrases();window.workspace?.scriptSaved();toast('原稿と句をこの端末に保存しました。');}};
 async function readFile(file){if(file.size>LIMITS.fileBytes)throw Error('読み込めるファイルは2 MiBまでです。');return file.text();}
 let textRequest=0;
-$('#txtImport').onchange=async e=>{const file=e.target.files[0];if(!file)return;const request=++textRequest;try{const contents=await readFile(file);if(request!==textRequest)return;if(contents.length>LIMITS.script)throw Error('原稿は50,000文字以内にしてください。');$('#scriptText').value=contents;$('#scriptText').dispatchEvent(new Event('input'));toast('TXTを読み込みました。');}catch(error){if(request===textRequest)toast(error.message||'TXTを読み込めませんでした。');}finally{e.target.value='';}};
+$('#txtImport').onchange=async e=>{const file=e.target.files[0];if(!file)return;const request=++textRequest;try{const contents=await readFile(file);if(request!==textRequest||!checkSavedData())return;if(contents.length>LIMITS.script)throw Error('原稿は50,000文字以内にしてください。');$('#scriptText').value=contents;$('#scriptText').dispatchEvent(new Event('input'));toast('TXTを読み込みました。');}catch(error){if(request===textRequest)toast(error.message||'TXTを読み込めませんでした。');}finally{e.target.value='';}};
 $('#playPhrase').onclick=playPhrase;$('#repeatPhrase').onclick=playPhrase;$('#pausePhrase').onclick=stopTts;$('#nextPhraseBtn').onclick=nextPhrase;$('#previousPhrase').onclick=previousPhrase;
 ['effort','naturalness'].forEach(id=>{$(`#${id}`).oninput=()=>{$(`#${id}Out`).textContent=$(`#${id}`).value;};});$('#saveReflection').onclick=()=>window.workspace?.saveReflection();
-$('#exportData').onclick=()=>download(`stuttersuite-export-${new Date().toISOString().slice(0,10)}.json`,backupContents());$('#backupData').onclick=()=>download(`stuttersuite-backup-${new Date().toISOString().slice(0,10)}.json`,backupContents());
+async function exportBackup(prefix){try{if(localData?.locks?.request)await localData.exclusive(()=>{});download(`stuttersuite-${prefix}-${new Date().toISOString().slice(0,10)}.json`,backupContents());}catch{showStorageNotice('バックアップを準備できませんでした。ページとブラウザの設定を確認してください。');}}
+$('#exportData').onclick=()=>exportBackup('export');$('#backupData').onclick=()=>exportBackup('backup');
 let restoreRequest=0;
-$('#restoreData').onchange=async e=>{const file=e.target.files[0];if(!file)return;const request=++restoreRequest;let committed=false;try{
-  const contents=await readFile(file);if(request!==restoreRequest)return;
+$('#restoreData').onchange=async e=>{const file=e.target.files[0];if(!file||!checkSavedData())return;const request=++restoreRequest,epoch=localData?.epoch;let committed=false;try{
+  const contents=await readFile(file);if(request!==restoreRequest||!checkSavedData())return;
   const candidate=prepareData(JSON.parse(contents),{backup:true});
   if(!await emergencyStop({broadcast:false})||request!==restoreRequest)return;
-  if(!commitData(candidate,{replaceRecovery:true}))return;
+  if(!await commitData(candidate,{replaceRecovery:true,epoch}))return;
   committed=true;
   sessionConditionSnapshot=null;phraseIndex=0;activeProfile=data.profiles[0]?.id||'baseline';activeConditionName=data.profiles[0]?.name||'補助なし';trial={order:[],index:0,active:false};closeTrial();renderProfiles();applyCondition(data.profiles[0]?.condition||withoutAssistance(defaultCondition()));window.workspace?.reset();
   $('#scriptText').value=data.script;$('#scriptText').dispatchEvent(new Event('input'));renderPhrases();renderHistory();toast('バックアップを復元・移行しました。補助は停止したままです。');
 }catch(error){if(request===restoreRequest)toast(committed?'データは復元しましたが画面を更新できませんでした。ページを再読み込みしてください。':`復元できませんでした。${error.message||'StutterSuiteのバックアップを選んでください。'} 元データは変更していません。`);}finally{e.target.value='';}};
-$('#clearData').onclick=()=>{if(confirm('このブラウザに保存した設定・原稿・履歴を削除します。元に戻せません。')){try{localStorage.removeItem(STORE);location.reload();}catch{showStorageNotice('データを削除できませんでした。ブラウザのサイトデータ設定を確認してください。');}}};
-$('#exportRecovery').onclick=()=>{if(recoveryRaw===null)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([recoveryRaw],{type:'application/json'}));a.download='stuttersuite-recovery-original.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);};
+function reloadAfterReset(message){
+  ++restoreRequest;++textRequest;++prepareRequest;++assistRequest;
+  pausePhrase();audio.stop().catch(()=>{});data=emptyData();recoveryRaw=unsavedCandidate=null;
+  try{sessionStorage.setItem('stuttersuite.reset.notice',message);}catch{}
+  location.reload();
+}
+function checkSavedData(){if(!localData)return true;try{return localData.current();}catch{showStorageNotice('保存領域を確認できません。ブラウザの設定を確認してください。');return false;}}
+$('#clearData').onclick=async()=>{
+  if(!confirm('このブラウザにStutterSuiteが保存した設定・原稿・記録を削除します。このタブの補助とTTSを停止し、未保存の編集内容も破棄します。元に戻せません。書き出したJSONや別のブラウザ・端末のデータは削除されません。更新前から開いている旧版のタブは閉じてください。'))return;
+  const button=$('#clearData');button.disabled=true;
+  try{
+    ++restoreRequest;++textRequest;
+    if(!await emergencyStop({broadcast:false}))return;
+    if(!localData)throw Error('保存領域にアクセスできません。ブラウザのサイトデータ設定から削除してください。');
+    await localData.clear();reloadAfterReset('このブラウザにStutterSuiteが保存したデータを削除しました。');
+  }catch(error){
+    const message='削除を完了できませんでした。ブラウザのサイトデータ設定も確認してください。'+(error.message||'');
+    if(localData?.invalidated)reloadAfterReset(message);else showStorageNotice(message);
+  }finally{button.disabled=false;}
+};
+window.addEventListener('storage',event=>{if(event.key===STORE||event.key===null)checkSavedData();});
+window.addEventListener('pageshow',checkSavedData);window.addEventListener('focus',checkSavedData);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkSavedData();});
+document.addEventListener('resume',checkSavedData);
+// Save, file-read, export and playback entry points also check the epoch, so a
+// delayed storage event cannot restore old data. Stop controls never depend on storage.
+$('#exportRecovery').onclick=()=>{if(!checkSavedData()||recoveryRaw===null)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([recoveryRaw],{type:'application/json'}));a.download='stuttersuite-recovery-original.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);};
 $('#storageBackup').onclick=()=>$('#backupData').click();
 $('#txtImportButton').onclick=()=>$('#txtImport').click();
 $('#restoreDataButton').onclick=()=>$('#restoreData').click();
@@ -276,3 +318,5 @@ $$('[data-help]').forEach(button=>button.onclick=()=>{go('guide');const section=
 // Legal/help pages can link directly to guide sections without starting audio.
 function openGuideAnchor(){const section=document.getElementById(location.hash.slice(1));if(section?.classList.contains("guide-section")){go("guide");section.tabIndex=-1;section.scrollIntoView();section.focus({preventScroll:true});}}
 window.addEventListener("hashchange",openGuideAnchor);window.addEventListener("DOMContentLoaded",openGuideAnchor);
+
+try{const notice=sessionStorage.getItem('stuttersuite.reset.notice');if(notice){sessionStorage.removeItem('stuttersuite.reset.notice');showStorageNotice(notice);}}catch{}
