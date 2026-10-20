@@ -11,6 +11,10 @@
         {"key": "Referrer-Policy", "value": "no-referrer"},
         {"key": "Permissions-Policy", "value": "camera=(), microphone=(self), speaker-selection=(self), geolocation=(), display-capture=()"}
       ]
+    },
+    {
+      "source": "/LICENSE",
+      "headers": [{"key": "Content-Type", "value": "text/plain; charset=utf-8"}]
     }
   ]
 }

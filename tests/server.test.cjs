@@ -20,6 +20,15 @@ test('serves worklet modules with JavaScript MIME; refuses uploads and non-app f
       const response = await fetch(`${origin}/${file}`);
       assert.equal(response.status, 200); assert.match(response.headers.get('content-type'), /text\/javascript/);
     }
+    const about = await fetch(`${origin}/about.html#privacy`);
+    assert.equal(about.status, 200); assert.match(about.headers.get('content-type'), /text\/html/);
+    const copy = await about.text();
+    assert.doesNotMatch(copy, /<script\b|<iframe\b|<form\b/i);
+    for (const id of ['safety', 'privacy', 'license', 'contact']) assert.ok(copy.includes(`id="${id}"`));
+    assert.equal((await fetch(`${origin}/about.css`)).status, 200);
+    const license = await fetch(`${origin}/LICENSE`);
+    assert.match(license.headers.get('content-type'), /text\/plain/);
+    assert.match(await license.text(), /GNU AFFERO GENERAL PUBLIC LICENSE/);
     assert.equal((await fetch(`${origin}/app.js`, {method: 'POST', body: 'synthetic-test'})).status, 404);
     assert.equal((await fetch(`${origin}/.git/config`)).status, 404);
     assert.equal((await fetch(`${origin}/tests/browser.cjs`)).status, 404);

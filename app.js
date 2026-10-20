@@ -272,3 +272,7 @@ function updatePitchSupport(){const supported=AssistanceAudioEngine.supportsPitc
 updatePitchSupport();
 
 $$('[data-help]').forEach(button=>button.onclick=()=>{go('guide');const section=document.getElementById(button.dataset.help);section.tabIndex=-1;section.scrollIntoView({behavior:'smooth',block:'start'});section.focus({preventScroll:true});});
+
+// Legal/help pages can link directly to guide sections without starting audio.
+function openGuideAnchor(){const section=document.getElementById(location.hash.slice(1));if(section?.classList.contains("guide-section")){go("guide");section.tabIndex=-1;section.scrollIntoView();section.focus({preventScroll:true});}}
+window.addEventListener("hashchange",openGuideAnchor);window.addEventListener("DOMContentLoaded",openGuideAnchor);

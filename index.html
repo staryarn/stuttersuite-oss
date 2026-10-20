@@ -30,7 +30,8 @@ WORKSPACE
 <div class="sidebar-foot">
 音声は端末内で処理します。<br>通話のミュートは通話アプリで操作します。
 <div class="source-links">
-<a href="https://github.com/xer5xer5/stuttersuite-oss" target="_blank" rel="noopener noreferrer">ソースコード</a><a href="https://github.com/xer5xer5/stuttersuite-oss/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">ライセンス</a>
+<a href="about.html">安全・プライバシー</a>
+<a href="https://github.com/staryarn/stuttersuite-oss" target="_blank" rel="noopener noreferrer">ソースコード</a><a href="https://github.com/staryarn/stuttersuite-oss/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">ライセンス</a>
 </div>
 </div>
 </nav>
@@ -60,18 +61,19 @@ AUDIO WORKSPACE
 <label for="inputDevice">マイク<select id="inputDevice"><option value="default">既定のマイク</option></select></label><label for="outputDevice">補助音の出力先<select id="outputDevice"><option value="default">ブラウザの既定出力</option></select></label><button class="info-button" type="button" data-info="devices" aria-label="機器の説明" aria-expanded="false">i</button>
 <div class="control">
 <div class="control-heading">
-<label for="masterGain">全体音量</label><button class="info-button" type="button" data-info="master" aria-label="全体音量の説明" aria-expanded="false">i</button><output id="masterGainValue" for="masterGain masterGainNumber">0 dB</output>
+<label for="masterGain">補助音量</label><button class="info-button" type="button" data-info="master" aria-label="補助音量の説明" aria-expanded="false">i</button><output id="masterGainValue" for="masterGain masterGainNumber">0 dB</output>
 </div>
 <div class="range-input">
-<input id="masterGain" type="range" min="-60" max="0" value="0" step="1" aria-label="全体音量"><input id="masterGainNumber" class="number-input" type="number" min="-60" max="0" step="1" value="0" data-number-for="masterGain" aria-label="全体音量の数値">
+<input id="masterGain" aria-describedby="listeningSafety" type="range" min="-60" max="0" value="0" step="1" aria-label="補助音量"><input id="masterGainNumber" class="number-input" type="number" min="-60" max="0" step="1" value="0" data-number-for="masterGain" aria-label="補助音量の数値">
 </div>
 </div>
 <div class="transport">
 <button id="prepareAudio" class="secondary">機器確認</button><button id="startAssist" class="primary">開始</button><button id="muteAssist" class="danger" disabled>停止</button>
 </div>
 </div>
+<p class="safety-note" id="listeningSafety">ヘッドホンを使い、OS・機器側も小さい音量から、短く試してください。初期値0 dBはアプリ内の相対値で、耳元の安全な音圧を保証しません。不快感があれば停止してください。 <a href="about.html#safety">安全上の注意</a></p>
 <p id="audioMessage" class="inline-message" aria-live="polite">
-ヘッドホンで使用してください。開始するまでマイクは使いません。
+加工音声・自声モニターを有効にして開始すると、停止するまでマイクを使用します。「機器確認」でも一時的に使用します。
 </p>
 </div>
 <section id="trialBar" class="trial-bar" aria-label="比較の進行" hidden>
@@ -333,7 +335,7 @@ SCRIPT & TTS
 <label>音声<select id="voiceSelect"><option>音声を読み込み中…</option></select></label>
 </div>
 <p class="tts-output-note">
-TTSはOS／ブラウザの既定出力を使います。
+TTSの音量・出力先はOS／ブラウザ側で確認してください。「補助音量」や補助音の出力先の設定には連動しません。
 </p>
 <div id="phraseList" class="phrase-list">
 </div>
@@ -460,9 +462,9 @@ Web版では出力先の切替に対応しないブラウザがあります。�
 データ <button class="info-button" type="button" data-info="privacy" aria-label="データ保存とプライバシーの説明" aria-expanded="false">i</button>
 </h2>
 <p>
-設定・原稿・履歴はこのブラウザのローカル保存領域に保存されます。
+設定・保存した原稿・任意の記録等は、このブラウザに保存されます。アプリによる暗号化はありません。JSONバックアップには原稿やメモも含まれます。 <a href="about.html#privacy">データの扱い</a>
 </p>
-<button id="backupData" class="secondary">バックアップを書き出す</button><button id="restoreDataButton" class="secondary" type="button">バックアップを復元</button><input id="restoreData" type="file" accept="application/json" hidden><button id="clearData" class="danger-outline">この端末のデータを削除</button>
+<button id="backupData" class="secondary">バックアップを書き出す</button><button id="restoreDataButton" class="secondary" type="button">バックアップを復元</button><input id="restoreData" type="file" accept="application/json" hidden><button id="clearData" class="danger-outline">StutterSuiteの保存データを削除</button>
 </div>
 <div class="panel">
 <h2>
@@ -601,10 +603,10 @@ StutterSuiteは、自分の声の聞こえ方を変えたり、一定の拍や�
 自分の声の高さを変えて再生します。正の値で高く、負の値で低くなり、12半音で1オクターブ変わります。0半音では音程を変更しません。発話や再生の速度は変わりません。
 </dd>
 <dt>
-全体音量と相対ゲイン
+補助音量と相対ゲイン
 </dt>
 <dd>
-全体音量は補助音をまとめて小さくする設定です。相対ゲインはAやBなど、それぞれの経路の声を小さくする設定です。例えばBだけを小さく聞きたい時はBの相対ゲインを下げます。dBはこのアプリ内の相対的な音量を表し、耳元の音圧を測定する値ではありません。
+補助音量は補助音をまとめて小さくする設定です。相対ゲインはAやBなど、それぞれの経路の声を小さくする設定です。例えばBだけを小さく聞きたい時はBの相対ゲインを下げます。dBはこのアプリ内の相対的な音量を表し、耳元の音圧を測定する値ではありません。
 </dd>
 <dt>
 遅延と音程の併用
@@ -742,7 +744,7 @@ StutterSuiteは、自分の声の聞こえ方を変えたり、一定の拍や�
 </section>
 <section class="panel guide-section" id="guide-science" aria-labelledby="guideScienceTitle">
 <h2 id="guideScienceTitle">音声やリズムを変える仕組みと研究結果</h2>
-<p>StutterSuiteに含まれる補助方法の研究を、機能別に紹介します。以下は<strong>論文で観察された結果</strong>であり、StutterSuiteで同じ改善が得られるという予測値ではありません。短時間の音読や模擬発表での改善と、日常会話での効果・長期的な改善は区別する必要があります。</p>
+<p>StutterSuiteに含まれる補助方法の研究を、機能別に紹介します。以下は<strong>各論文の結果</strong>です。StutterSuiteを使った試験ではなく、このアプリの効果を示すものではありません。StutterSuiteで同じ改善が得られるという予測値ではありません。短時間の音読や模擬発表での改善と、日常会話での効果・長期的な改善は区別する必要があります。</p>
 <p class="hint">「対象・比較条件・限界」を開くと、実験の対象人数や装置との違い、原著論文へのリンクを確認できます。数値はグループとして報告された研究結果であり、個人の改善率や達成目標ではありません。</p>
 <div class="evidence-cards" aria-label="機能別の研究">
 <article class="evidence-card" id="evidence-daf">
@@ -814,7 +816,7 @@ StutterSuiteは、自分の声の聞こえ方を変えたり、一定の拍や�
 </div>
 <p><strong>専門機関の見解：</strong>米国言語聴覚学会（ASHA）の臨床資料は、吃音の回数だけでなく、話す負担、回避、コミュニケーションや生活の質も考えることを重視しています。これはStutterSuiteの有効性を認定する資料ではありません。<a href="https://www.asha.org/practice-portal/clinical-topics/fluency-disorders/" target="_blank" rel="noopener noreferrer">ASHA Practice Portal ↗</a></p>
 <p><strong>本アプリの検証範囲：</strong>StutterSuite自体について臨床試験は行っていません。研究の機器・遅延・音量・言語・発話場面はアプリと異なります。自分で条件を比較するときも、吃音の回数だけでなく負担や自然さ、伝えたい内容を話せたかを確認してください。補助が合わなければ停止できます。</p>
-<p class="hint">出典の確認日：2026-10-12。リンク先の抄録と閲覧可能な本文を基に要約しました。研究の詳細な書誌情報・記述方針は<a href="https://github.com/xer5xer5/stuttersuite-oss/blob/a25ac839ceb256f64b9a2b5dfded8fcfc54bd510/EVIDENCE_JA.md" target="_blank" rel="noopener noreferrer">研究資料の一覧（2026-10-12版）</a>にもまとめています。本アプリは診断や治療を行うものではなく、効果を保証しません。</p>
+<p class="hint">出典の確認日：2026-10-12。リンク先の抄録と閲覧可能な本文を基に要約しました。研究の詳細な書誌情報・記述方針は<a href="https://github.com/staryarn/stuttersuite-oss/blob/a25ac839ceb256f64b9a2b5dfded8fcfc54bd510/EVIDENCE_JA.md" target="_blank" rel="noopener noreferrer">研究資料の一覧（2026-10-12版）</a>にもまとめています。本アプリは診断や治療を行うものではなく、効果を保証しません。</p>
 </section>
 <section class="panel guide-section" id="guide-faq" aria-labelledby="guideFaqTitle">
 <h2 id="guideFaqTitle">
@@ -826,7 +828,7 @@ StutterSuiteは、自分の声の聞こえ方を変えたり、一定の拍や�
 マイクの使用許可を得た後、端末内で音声を加工し、ヘッドホンに再生します。処理に必要な短い音声データはメモリ内にのみ保持し、外部への送信や録音・保存は行いません。補助を停止すると、マイクを解放して処理を終了します。設定・原稿・履歴にも音声データは含まれません。
 </p>
 <p>
-サイトの表示や出典リンクの閲覧には通信が発生しますが、このアプリからマイク音声や原稿を送信する処理はありません。
+このアプリからマイク音声や原稿を送信する処理はありません。サイト配信時のVercelによるアクセス情報の処理、ブラウザ内の保存、問い合わせメールの扱いは、<a href="about.html#privacy">安全・プライバシー</a>をご覧ください。
 </p>
 </details>
 <details>
@@ -861,6 +863,7 @@ HTTPSの公開ページまたはlocalhostで、AudioWorkletに対応したブラ
 </details>
 </section>
 </section>
+<footer class="app-policy-links"><a href="about.html">安全・プライバシー</a><a href="LICENSE">ライセンス全文</a></footer>
 </main>
 <aside id="guideDrawer" class="guide-drawer" aria-label="機能の説明" hidden>
 <div class="drawer-head">
@@ -924,7 +927,8 @@ COMPARISON
 <div class="compact-state">
 <span id="compactAssist"></span><span id="compactTts"></span>
 </div>
-<button id="compactMute" class="danger">すべて停止</button><label>全体音量<input id="compactGain" type="range" min="-60" max="0" value="0"></label>
+<button id="compactMute" class="danger">すべて停止</button><label>補助音量<input id="compactGain" type="range" min="-60" max="0" value="0"></label>
+<p class="compact-safety">補助音量はTTSには適用されません。OS・機器側も小さい音量で。 <a href="about.html#safety" target="_blank" rel="noopener noreferrer">安全上の注意</a></p>
 <div id="compactScript">
 <p class="compact-phrase">
 <strong id="compactSource">現在の句:</strong><span id="compactPhrase">—</span>
