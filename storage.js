@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // One snapshot, one Web Lock. Deletion (or repair of a damaged envelope)
 // changes the epoch so stale readers cannot write their old contents back.
+// Ordinary saves compare contents against the last snapshot this client accepted.
 class StutterSuiteStorage {
   static key = 'stuttersuite.public.v2';
   static legacyKey = 'stuttersuite.public.v1';
@@ -9,6 +10,7 @@ class StutterSuiteStorage {
     this.storage = storage; this.locks = locks; this.onInvalidate = onInvalidate;
     this.invalidated = false;
     this.initial = this.snapshot(); this.epoch = this.initial.epoch;
+    this.baseline = this.initial;
     this.initialized = this.initial.present;
   }
   snapshot() {
@@ -43,14 +45,23 @@ class StutterSuiteStorage {
     }
     return this.locks.request(StutterSuiteStorage.key, {mode: 'exclusive'}, action);
   }
-  write(value, expected = this.epoch, committed = () => {}) {
+  write(value, {epoch: expected = this.epoch, baseline, committed = () => {}} = {}) {
     return this.exclusive(() => {
       if (!this.current(expected)) throw this.stale();
+      // Prepare before rejecting a normal conflict so the caller can export its
+      // unsaved candidate. Deleted data is rejected above, without evaluating it.
       const contents = typeof value === 'function' ? value() : value;
+      // Default to our last successful write *inside* the lock, so queued saves
+      // in this client compose. File imports can pin their baseline before I/O.
+      if (this.snapshot().value !== (baseline ?? this.baseline).value) {
+        const error = Error('別の保存操作でデータが更新されたため、上書きしませんでした。');
+        error.name = 'ConflictError'; throw error;
+      }
       const epoch = expected.startsWith('corrupt:') ? crypto.randomUUID() : expected;
       this.storage.setItem(StutterSuiteStorage.key, JSON.stringify({format: 1, epoch, value: contents}));
       // A successful explicit recovery now owns the repaired envelope.
       this.epoch = epoch; this.initialized = true;
+      this.baseline = {value: contents};
       committed();
       return epoch;
     });

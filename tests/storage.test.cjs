@@ -33,7 +33,7 @@ test('queued save → delete → stale save is ordered, and the stale payload is
 test('a suspended client is rejected without receiving any storage event; a new explicit restore works', async () => {
   const f=fixture(), old=f.client(), deleting=f.client();
   const epoch=old.epoch;await deleting.clear();
-  await assert.rejects(old.write('old import',epoch),{name:'AbortError'});
+  await assert.rejects(old.write('old import',{epoch}),{name:'AbortError'});
   const current=f.client();await current.write('explicit newly selected backup');
   assert.equal(f.client().initial.value,'explicit newly selected backup');
   // An uncooperative legacy tab must never trigger automatic re-import.
@@ -43,20 +43,66 @@ test('a suspended client is rejected without receiving any storage event; a new 
 test('delete before a delayed restore rejects it even if the client was already checked', async () => {
   const f=fixture(), restoring=f.client();assert.equal(restoring.current(),true);
   const epoch=restoring.epoch;await f.client().clear();
-  await assert.rejects(restoring.write('late file read',epoch),{name:'AbortError'});
+  await assert.rejects(restoring.write('late file read',{epoch}),{name:'AbortError'});
   assert.equal(f.client().initial.value,null);
 });
 test('writes publish state inside the lock, preserving different queued field updates', async () => {
   const f=fixture(), client=f.client();let state={script:'',ttsRate:1.2,records:[]};
-  const write=update=>{let prepared;return client.write(()=>JSON.stringify(prepared=update(state)),client.epoch,()=>state=prepared);};
+  const write=update=>{let prepared;return client.write(()=>JSON.stringify(prepared=update(state)),{committed:()=>state=prepared});};
   await Promise.all([write(current=>({...current,ttsRate:1.5})),write(current=>({...current,script:'new draft'})),write(current=>({...current,ttsRate:1.8})),write(current=>({...current,records:[...current.records,'record']}))]);
   assert.deepEqual(state,{script:'new draft',ttsRate:1.8,records:['record']});
   assert.deepEqual(JSON.parse(f.client().initial.value),state);
 });
+
+test('a stale tab cannot overwrite another tab\'s normal save, even without a storage event', async () => {
+  const f=fixture(), original=JSON.stringify({profiles:[],script:''});
+  f.storage.setItem(Store.legacyKey,original);
+  let invalidations=0, prepared, published=false;
+  const a=f.client(),b=f.client(()=>invalidations++);
+  await a.write(JSON.stringify({profiles:[{id:'saved-in-A'}],script:''}));
+  const latest=f.storage.getItem(Store.key);
+  // Lifecycle/deletion checks must not accept another tab's normal save as our baseline.
+  assert.equal(b.current(),true);
+  await assert.rejects(b.write(()=>JSON.stringify(prepared={profiles:[],script:'draft-in-B'}),{committed:()=>published=true}),{name:'ConflictError'});
+  assert.equal(f.storage.getItem(Store.key),latest);assert.equal(published,false);
+  assert.equal(prepared.script,'draft-in-B');assert.equal(invalidations,0);assert.equal(b.invalidated,false);
+  await assert.rejects(b.write('retry cannot force an overwrite'),{name:'ConflictError'});
+  const reloaded=f.client(),state=JSON.parse(reloaded.initial.value);
+  await reloaded.write(JSON.stringify({...state,script:'draft-in-B'}));
+  assert.deepEqual(JSON.parse(f.client().initial.value),{profiles:[{id:'saved-in-A'}],script:'draft-in-B'});
+});
+
+test('normal save conflicts are checked inside the lock after earlier queued saves', async () => {
+  const f=fixture(),a=f.client(),b=f.client(),hold=deferred();
+  const barrier=f.locks.request(Store.key,{},()=>hold.promise);
+  const first=a.write('save-in-A');
+  const second=assert.rejects(b.write('stale-save-in-B'),{name:'ConflictError'});
+  hold.resolve();await barrier;await first;await second;
+  assert.equal(f.client().initial.value,'save-in-A');
+});
+
+test('a delayed full restore is rejected after another save, including one in the same tab', async () => {
+  for(const sameTab of [false,true]){
+    const f=fixture(),restoring=f.client(),baseline=restoring.baseline,epoch=restoring.epoch;
+    await (sameTab?restoring:f.client()).write('saved while reading the file');
+    await assert.rejects(restoring.write('late replacement',{epoch,baseline}),{name:'ConflictError'});
+    assert.equal(f.client().initial.value,'saved while reading the file');
+  }
+});
+
+test('an unchanged snapshot from another tab is safe, and rejected writes do not advance the baseline', async () => {
+  const f=fixture(),a=f.client(),b=f.client();
+  await a.write(null); // Same contents as an empty initial store; no update to lose.
+  await b.write('first nonempty save');
+  const baseline=b.baseline;
+  await f.client().write('new contents');
+  await assert.rejects(b.write('stale contents'),{name:'ConflictError'});
+  assert.equal(b.baseline,baseline);
+});
 test('quota failure preserves the previous snapshot and does not publish a failed candidate', async () => {
   const f=fixture(), client=f.client();await client.write('original');let published=false;
   const raw=f.storage.getItem(Store.key);f.storage.setItem=()=>{throw Object.assign(Error('full'),{name:'QuotaExceededError'});};
-  await assert.rejects(client.write('candidate',client.epoch,()=>published=true),{name:'QuotaExceededError'});
+  await assert.rejects(client.write('candidate',{committed:()=>published=true}),{name:'QuotaExceededError'});
   await assert.rejects(client.clear(),{name:'QuotaExceededError'});
   assert.equal(published,false);assert.equal(f.storage.getItem(Store.key),raw);assert.equal(client.invalidated,false);
 });

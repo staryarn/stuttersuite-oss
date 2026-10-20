@@ -120,20 +120,23 @@ let speechToken = 0, advanceTimer = null;
 
 function publicData(){const {schema_version,profiles,script,phrases,reflections,ttsRate}=data;return {schema_version:SCHEMA_VERSION,profiles,script,phrases,reflections,ttsRate};}
 function showStorageNotice(message){$('#storageNotice').hidden=false;$('#storageMessage').textContent=message;$('#exportRecovery').hidden=recoveryRaw===null;}
-async function commitData(candidate,{replaceRecovery=false,epoch=localData?.epoch}={}){
+async function commitData(candidate,{replaceRecovery=false,epoch=localData?.epoch,baseline}={}){
   if(storageBlocked&&!replaceRecovery){showStorageNotice(storageMessage);return false;}
   let prepared;pendingSaves++;
   try {
     if(!localData)throw Error('保存領域にアクセスできません。ブラウザの設定を確認してください。');
     const savedEpoch=await localData.write(()=>{
-      prepared=prepareData(typeof candidate==='function'?candidate(data):candidate);
+      prepared=prepareData(typeof candidate==='function'?candidate(unsavedCandidate??data):candidate);
       return JSON.stringify(prepared);
-    },epoch,()=>{data=prepared;unsavedCandidate=null;storageBlocked=false;recoveryRaw=null;});
+    },{epoch,baseline,committed:()=>{data=prepared;unsavedCandidate=null;storageBlocked=false;recoveryRaw=null;}});
     if(!localData.current(savedEpoch))return false;
     $('#storageNotice').hidden=true;return true;
   }catch(error){
     if(error.name==='AbortError'||localData?.invalidated)return false;
     if(prepared&&!replaceRecovery)unsavedCandidate=prepared;
+    if(error.name==='ConflictError'){
+      showStorageNotice(replaceRecovery?'読込中または別のタブで保存データが更新されたため、選択したJSONは復元しませんでした。選択元のファイルは残っています。必要な編集内容を退避してからページを再読み込みし、最新データを確認してください。JSONの復元は保存データ全体を置き換えます。':'別の保存操作でデータが更新されたため、上書きしませんでした。このタブの保存候補をバックアップに書き出してからページを再読み込みし、最新データに変更を反映してください。保存候補には他タブの更新は含まれません。JSONの復元は保存データ全体を置き換えます。');return false;
+    }
     showStorageNotice(error.name==='QuotaExceededError'||error.name==='SecurityError'?'保存できませんでした。空き容量やブラウザの設定を確認し、現在の内容をバックアップに書き出してください。':error.message||'保存できませんでした。入力した内容は画面上に残っています。');return false;
   }finally{pendingSaves--;}
 }
@@ -241,11 +244,11 @@ $('#playPhrase').onclick=playPhrase;$('#repeatPhrase').onclick=playPhrase;$('#pa
 async function exportBackup(prefix){try{if(localData?.locks?.request)await localData.exclusive(()=>{});download(`stuttersuite-${prefix}-${new Date().toISOString().slice(0,10)}.json`,backupContents());}catch{showStorageNotice('バックアップを準備できませんでした。ページとブラウザの設定を確認してください。');}}
 $('#exportData').onclick=()=>exportBackup('export');$('#backupData').onclick=()=>exportBackup('backup');
 let restoreRequest=0;
-$('#restoreData').onchange=async e=>{const file=e.target.files[0];if(!file||!checkSavedData())return;const request=++restoreRequest,epoch=localData?.epoch;let committed=false;try{
+$('#restoreData').onchange=async e=>{const file=e.target.files[0];if(!file||!checkSavedData())return;const request=++restoreRequest,epoch=localData?.epoch,baseline=localData?.baseline;let committed=false;try{
   const contents=await readFile(file);if(request!==restoreRequest||!checkSavedData())return;
   const candidate=prepareData(JSON.parse(contents),{backup:true});
   if(!await emergencyStop({broadcast:false})||request!==restoreRequest)return;
-  if(!await commitData(candidate,{replaceRecovery:true,epoch}))return;
+  if(!await commitData(candidate,{replaceRecovery:true,epoch,baseline}))return;
   committed=true;
   sessionConditionSnapshot=null;phraseIndex=0;activeProfile=data.profiles[0]?.id||'baseline';activeConditionName=data.profiles[0]?.name||'補助なし';trial={order:[],index:0,active:false};closeTrial();renderProfiles();applyCondition(data.profiles[0]?.condition||withoutAssistance(defaultCondition()));window.workspace?.reset();
   $('#scriptText').value=data.script;$('#scriptText').dispatchEvent(new Event('input'));renderPhrases();renderHistory();toast('バックアップを復元・移行しました。補助は停止したままです。');

@@ -220,6 +220,7 @@ async function run() {
   await require('./workspace-browser.cjs')(execute,window);
   await require('./workspace-review-browser.cjs')(execute,window);
   await require('./notice-storage-browser.cjs')(origin);
+  await require('./save-conflicts-browser.cjs')(origin);
   await execute(`new Promise(resolve=>setTimeout(resolve,3700))`);
   const output = path.join(__dirname, '..', '.test-output');fs.mkdirSync(output, {recursive:true});
   const save = async name => {await execute('new Promise(resolve=>setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(resolve)),150))');fs.writeFileSync(path.join(output,name), (await window.webContents.capturePage()).toPNG());};
