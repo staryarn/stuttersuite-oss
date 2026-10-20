@@ -10,13 +10,38 @@ function fixture() {
   return {values, storage, locks, client};
 }
 function deferred() { let resolve; const promise = new Promise(yes => resolve = yes); return {promise, resolve}; }
-test('reads legacy JSON without rewriting it; new snapshots preserve backup contents', async () => {
+test('successful migration retains the original v1 copy and gives v2 precedence until explicit deletion', async () => {
   const f = fixture(), raw = JSON.stringify({script:'原稿',phrases:[{text:'句'}],profiles:[]});
   f.storage.setItem(Store.legacyKey, raw);
   const client = f.client(); assert.equal(client.initial.value, raw); assert.equal(f.values.size, 1);
   await client.write(raw);
   assert.equal(f.client().initial.value, raw);
   assert.equal(JSON.parse(f.storage.getItem(Store.key)).value, raw);
+  assert.equal(f.storage.getItem(Store.legacyKey),raw,'migration intentionally retains the original');
+  await client.write('new v2 contents');
+  f.storage.setItem(Store.legacyKey,'later write from an uncooperative old tab');
+  assert.equal(f.client().initial.value,'new v2 contents','v1 is never automatically re-imported over v2');
+  assert.equal(f.storage.getItem(Store.legacyKey),'later write from an uncooperative old tab','a newer legacy copy is not discarded');
+  await f.client().clear();
+  assert.equal(f.storage.getItem(Store.legacyKey),null);
+  assert.equal(f.client().initial.value,null);
+});
+
+test('a failed first v2 write preserves v1 and allows a later migration retry', async () => {
+  const f=fixture(),raw=JSON.stringify({script:'移行前の原稿',profiles:[],phrases:[]});
+  f.storage.setItem(Store.legacyKey,raw);const client=f.client(),setItem=f.storage.setItem;
+  f.storage.setItem=()=>{throw Object.assign(Error('full'),{name:'QuotaExceededError'});};
+  await assert.rejects(client.write('validated migration candidate'),{name:'QuotaExceededError'});
+  assert.equal(f.storage.getItem(Store.key),null);assert.equal(f.storage.getItem(Store.legacyKey),raw);
+  assert.equal(f.client().initial.value,raw);
+  f.storage.setItem=setItem;await client.write('validated migration candidate');
+  assert.equal(f.client().initial.value,'validated migration candidate');assert.equal(f.storage.getItem(Store.legacyKey),raw);
+});
+
+test('damaged v2 is preserved for recovery instead of silently reverting to the retained v1 copy', () => {
+  const f=fixture();f.storage.setItem(Store.legacyKey,'old legacy copy');f.storage.setItem(Store.key,'{damaged v2');
+  const client=f.client();assert.equal(client.initial.damaged,true);assert.equal(client.initial.value,'{damaged v2');
+  assert.equal(f.storage.getItem(Store.key),'{damaged v2');assert.equal(f.storage.getItem(Store.legacyKey),'old legacy copy');
 });
 test('queued save → delete → stale save is ordered, and the stale payload is never evaluated', async () => {
   const f = fixture(), first = f.client(), deleting = f.client(); let invalidations=0, prepared=0;

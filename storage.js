@@ -59,6 +59,8 @@ class StutterSuiteStorage {
       }
       const epoch = expected.startsWith('corrupt:') ? crypto.randomUUID() : expected;
       this.storage.setItem(StutterSuiteStorage.key, JSON.stringify({format: 1, epoch, value: contents}));
+      // Keep v1 until explicit clear: an old tab does not take this lock and can
+      // still update it. Automatic compare-then-remove could discard that copy.
       // A successful explicit recovery now owns the repaired envelope.
       this.epoch = epoch; this.initialized = true;
       this.baseline = {value: contents};
