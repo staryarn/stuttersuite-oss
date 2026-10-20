@@ -5,7 +5,7 @@ const {execFile} = require('node:child_process');
 const securityHeaders = require('./vercel.json').headers[0].headers;
 const root = __dirname;
 const types = {'.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.mjs': 'text/javascript'};
-const allowed = new Set(['index.html', 'styles.css', 'compact.css', 'compact.js', 'app.js', 'workspace.js', 'audio-engine.js', 'pitch-worklet.js', 'pitch-core.mjs']);
+const allowed = new Set(['index.html', 'about.html', 'about.css', 'LICENSE', 'styles.css', 'compact.css', 'compact.js', 'app.js', 'storage.js', 'workspace.js', 'audio-engine.js', 'pitch-worklet.js', 'pitch-core.mjs']);
 function createServer() {
   return http.createServer((request, response) => {
     for (const header of securityHeaders) response.setHeader(header.key, header.value);
@@ -15,7 +15,7 @@ function createServer() {
     if (!['GET', 'HEAD'].includes(request.method) || !allowed.has(name)) {
       response.writeHead(404); response.end('Not found'); return;
     }
-    response.setHeader('Content-Type', types[path.extname(name)] + '; charset=utf-8');
+    response.setHeader('Content-Type', (name === 'LICENSE' ? 'text/plain' : types[path.extname(name)]) + '; charset=utf-8');
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Cache-Control', 'no-cache');
     if (request.method === 'HEAD') { response.end(); return; }

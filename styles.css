@@ -202,3 +202,6 @@ dialog{color:var(--ink);width:420px;max-width:calc(100vw - 24px);border:1px soli
 .evidence-detail dd{margin:4px 0 0;line-height:1.7;font-size:13px}
 .evidence-card .evidence-source{font-size:12px;overflow-wrap:anywhere}
 @media(max-width:700px){.evidence-cards{grid-template-columns:1fr}.evidence-card{padding:13px;scroll-margin-top:110px}}
+
+/* Persistent safety guidance and a policy link also available on mobile. */
+.safety-note{font-size:12px;line-height:1.65;margin:12px 0 0}.safety-note a,.compact-safety a{text-underline-offset:3px}.source-links{flex-wrap:wrap}.compact-safety{font-size:12px;line-height:1.55;margin:8px 0}.app-policy-links{display:flex;flex-wrap:wrap;gap:16px;margin-top:24px;border-top:1px solid var(--line);padding-top:12px;font-size:12px}

@@ -13,14 +13,14 @@
     branch: ['加工音声 A / B','自分の声を加工してヘッドホンに返す、独立した2つの系統です。Aだけでも使えます。Bを有効にすると両方の音が重なります。','AとBで遅延や音程を別々に変えられます。有効を外した系統は再生されませんが、入力した値は残ります。','guide-feedback','branchAEnabled'],
     delay: ['追加遅延（DAF）','自分の声が少し遅れて聞こえるようにします。50 msは0.05秒です。音程は変わりません。','DAFは遅れて聞こえる自分の声を使う補助です。0 msで追加遅延はなくなりますが、機器・ブラウザ自体の遅延は残ります。まず短い同じ文を読み、遅延だけを変えて話しやすさを比べられます。合う値は人や場面で変わります。','guide-feedback','delayA'],
     pitch: ['音程（FAF）','自分の声の高さを変えます。−は低く、＋は高くします。0半音は音程の加工なし。話す速さは変わりません。','FAFは高さを変えた自分の声を聞く補助です。1半音は隣の音階までの幅です。遅延とは別々に設定できます。音程処理自体にも短い遅れが生じます。数字が大きいほど良いという意味ではありません。','guide-feedback','pitchA'],
-    gain: ['相対ゲイン・音量（dB）','この音の大きさを調整します。0 dBから負の値に下げるほど小さくなります。全体音量とOSの音量も影響します。','ゲインは音の大きさを調整する倍率です。A/B、自声モニター、ノイズの音量を別々に変えられます。dBの値は耳元の実測音量ではありません。ヘッドホンで小さく聞こえるところから確認してください。','guide-feedback','gainA'],
-    master: ['全体音量','加工音声・ノイズ・自声モニター・メトロノーム音をまとめて調整します。TTSの音量はOS／ブラウザ側で調整します。','各系統の相対ゲインを保ちながら補助音全体を下げられます。OSやヘッドホンの音量も確認してください。急に大きくせず、聞き取りやすい小さい音量で試せます。','guide-start','masterGain'],
+    gain: ['相対ゲイン・音量（dB）','この音の大きさを調整します。0 dBから負の値に下げるほど小さくなります。補助音量とOSの音量も影響します。','ゲインは音の大きさを調整する倍率です。A/B、自声モニター、ノイズの音量を別々に変えられます。dBの値は耳元の実測音量ではありません。ヘッドホンで小さく聞こえるところから確認してください。','guide-feedback','gainA'],
+    master: ['補助音量','TTSには適用されません。加工音声・ノイズ・自声モニター・メトロノーム音をまとめて調整します。TTSの音量はOS／ブラウザ側で調整します。','各系統の相対ゲインを保ちながら補助音全体を下げられます。OSやヘッドホンの音量も確認してください。急に大きくせず、聞き取りやすい小さい音量で試せます。','guide-start','masterGain'],
     pan: ['左右の出力','この音を両耳・左耳・右耳のどこに返すか選びます。片耳を選ぶにはステレオ出力が必要です。','Aを左、Bを右にするなど、各系統で聞こえる場所を変えられます。通話相手への声の送り先を選ぶ設定ではありません。','guide-feedback','panA'],
-    masking: ['マスキング','一定のノイズをヘッドホンに流します。自分の声の聞こえ方を変えるための機能です。マイク音声を消す機能ではありません。','ノイズの種類と音量を選べます。加工音声とは独立して使え、マスキングだけならマイクを使用しません。通話相手に送る音声へのノイズ除去は行いません。小さい音から確認してください。','guide-tools','maskingEnabled'],
+    masking: ['マスキング','一定のノイズをヘッドホンに流します。自分の声の聞こえ方を変えるための機能です。マイク音声を消す機能ではありません。','ノイズの種類と音量を選べます。加工音声とは独立して使え、マスキングだけで開始した場合はマイクを取得しません。取得済みのマイクは、補助を停止するまで使用を続けます。通話相手に送る音声へのノイズ除去は行いません。小さい音から確認してください。','guide-tools','maskingEnabled'],
     noise: ['ノイズの種類','ホワイトは広い帯域、ピンクは低い帯域を多め、ブラウンはさらに低い帯域を多めに含むノイズです。聞こえる音色が変わります。','同じ数字の音量でも、種類や機器によって聞こえる大きさは違います。一度に種類と音量を両方変えるより、片方ずつ試すと違いを確認しやすくなります。','guide-tools','maskingType'],
     filter: ['周波数調整','ノイズの高い音や低い音を抑えて、聞こえる音色を変えます。声の音程やノイズの種類とは別の設定です。','「高域を抑える」は高い音を、「低域を抑える」は低い音を弱めます。マスキングのノイズだけに作用し、通話音声を加工する機能ではありません。','guide-tools','maskingFilter'],
-    direct: ['自声モニター','音程や追加遅延を変えずに、自分の声をヘッドホンへ返します。機器やブラウザによる遅れは残ります。','加工音声A/Bと並行して使えます。自声モニターを有効にするとマイクを使います。すでに加工音声が聞こえている場合は、音が重なるので小さい音量から調整してください。','guide-tools','directEnabled'],
-    metro: ['メトロノーム','一定間隔の拍を画面や音で示します。話すタイミングをつかむ手掛かりとして使えます。','拍ごとに短い区切りを話すなど、自分が使いやすい合わせ方を試せます。発話の検出や自動追跡は行いません。「画面のみ」なら音は出ず、メトロノームだけならマイクも使いません。','guide-tools','metroEnabled'],
+    direct: ['自声モニター','音程や追加遅延を変えずに、自分の声をヘッドホンへ返します。機器やブラウザによる遅れは残ります。','加工音声A/Bと並行して使えます。自声モニターを有効にして開始するとマイクを使います。マイク未使用で動作中の場合は、いったん停止してから開始し直してください。すでに加工音声が聞こえている場合は、音が重なるので小さい音量から調整してください。','guide-tools','directEnabled'],
+    metro: ['メトロノーム','一定間隔の拍を画面や音で示します。話すタイミングをつかむ手掛かりとして使えます。','拍ごとに短い区切りを話すなど、自分が使いやすい合わせ方を試せます。発話の検出や自動追跡は行いません。「画面のみ」なら音は出ず、メトロノームだけで開始した場合はマイクを取得しません。取得済みのマイクを解放するには補助を停止してください。','guide-tools','metroEnabled'],
     bpm: ['テンポ（BPM）','1分間の拍の数です。60 BPMは1秒に1拍、120 BPMは1秒に2拍です。大きいほど拍が速くなります。','話す速さを自動で変える設定ではありません。自分が合わせやすい間隔を試してください。音を出す場合は表示を「音のみ」か「音と画面」にします。','guide-tools','bpm'],
     tts: ['TTS・斉読','TTSは原稿の読み上げです。斉読は、読み上げ音声とほぼ同時に同じ文を話すことです。まず原稿を句に分けてから再生します。','原稿の内容や話すタイミングを確認する補助として使えます。端末内の読み上げ音声だけを使用します。ローカル音声がない端末では再生できません。音声補助の開始とは独立して操作できます。','guide-script','scriptText'],
     split: ['句に分ける','句点・改行などで原稿を短いまとまりに分けます。句を選んで、繰り返しや次の句への移動ができます。','句への分割と原稿保存を同時に行います。原稿を編集した後は、もう一度「句に分ける」か「原稿を保存」を押してください。古い句が誤って読まれないよう、更新するまで再生は停止します。','guide-script','splitScript'],
@@ -33,8 +33,8 @@
     rating: ['振り返り','話す負担・自然さ・次も使いたいかを任意で残します。未入力は未回答として保存します。吃音の専門知識は必要ありません。','使用を始めたときの設定と、途中で変えた設定を一緒に残せます。後から同じ場面の記録を見たり、開始時の値を読み戻したりできます。点数は自分の感想を比べるためのもので、診断用の尺度ではありません。','guide-save','effort'],
     privacy: ['端末内のデータ','音声は端末内で処理し、送信・録音保存しません。設定・原稿・任意の記録は、このブラウザ内に保存します。','バックアップには原稿やメモも含まれます。ブラウザのサイトデータを削除すると保存内容も消えるため、残したい内容はJSONで書き出せます。','guide-faq','backupData'],
     save: ['保存設定','遅延・音程・ノイズ・リズム・読み上げ速度など、現在の値を名前と場面を付けて残せます。「更新」は選択中の保存設定を置き換え、「別名で保存」は新しく追加します。','編集中の値は、保存するまで保存設定を書き換えません。「複製」では現在の値からコピーを作れます。サンプルは自分の保存設定とは別です。保存した設定を読み込んでも、音声は自動で始まりません。','guide-save','profileSelect'],
-    lock: ['設定をロック','加工音声・ノイズ・自声モニター・拍の値を固定し、誤操作を防ぎます。説明のⓘ、停止と全体音量は操作できます。','設定を調整するときはチェックを外してください。保存設定の読み込みや比較で条件を切り替えることはできます。読み上げの操作は独立して使えます。','guide-save','settingLock'],
-    compact: ['小型表示','現在の設定名と動作状態、全体音量と停止を、小さいパネルにまとめます。原稿の句があれば読み上げの操作も表示します。','「すべて停止」は、TTSだけが再生されているときも使えます。このパネルはブラウザのページ内に表示されます。通話アプリを操作している間も押せる位置にブラウザを配置できます。','guide-save','openCompact']
+    lock: ['設定をロック','加工音声・ノイズ・自声モニター・拍の値を固定し、誤操作を防ぎます。説明のⓘ、停止と補助音量は操作できます。','設定を調整するときはチェックを外してください。保存設定の読み込みや比較で条件を切り替えることはできます。読み上げの操作は独立して使えます。','guide-save','settingLock'],
+    compact: ['小型表示','現在の設定名と動作状態、補助音量と停止を、小さいパネルにまとめます。原稿の句があれば読み上げの操作も表示します。','「すべて停止」は、TTSだけが再生されているときも使えます。このパネルはブラウザのページ内に表示されます。通話アプリを操作している間も押せる位置にブラウザを配置できます。','guide-save','openCompact']
   };
   let origin = clone(currentCondition()), originName = activeConditionName, guideReturn = 'assist';
   let anchor = null, pinned = false, showTimer, hideTimer, drawerAnchor = null, drawerHelp = null, returningFocus=false;
@@ -150,7 +150,7 @@
     number.addEventListener('blur',()=>number.value=range.value);
   });
   q('#settingLock').addEventListener('change',()=>{
-    sync();toast(q('#settingLock').checked?'詳細設定をロックしました。説明・停止・全体音量は操作できます。':'設定のロックを解除しました。');
+    sync();toast(q('#settingLock').checked?'詳細設定をロックしました。説明・停止・補助音量は操作できます。':'設定のロックを解除しました。');
   });
   q('#revertCondition').onclick=()=>{applyCondition(clone(origin));conditionChanged();sync();toast('編集前の値に戻しました。');};
   q('#inputDevice').addEventListener('change',()=>{sync();if(audio.running)q('#audioMessage').textContent='マイクの変更は、補助を停止して再開すると適用されます。';});
@@ -169,21 +169,19 @@
   }
   q('#updateProfile').onclick=()=>openSave('update');
   q('#cancelProfile').onclick=q('#cancelProfileTop').onclick=()=>q('#profileDialog').close();
-  q('#profileForm').onsubmit=event=>{
+  q('#profileForm').onsubmit=async event=>{
     event.preventDefault();const name=q('#profileName').value.trim();if(!name){q('#profileDialogMessage').textContent='名前を入力してください。';q('#profileName').focus();return;}
-    const candidate=clone(data),existing=selectedProfile(),id=saveMode==='update'&&existing?existing.id:crypto.randomUUID();
+    const existing=selectedProfile(),updating=saveMode==='update'&&existing,id=updating?existing.id:crypto.randomUUID();
     const profile={id,name,scene:q('#profileScene').value,favorite:q('#profileFavorite').checked,condition:currentCondition()};
-    if(saveMode==='update'&&existing)candidate.profiles[candidate.profiles.findIndex(p=>p.id===id)]=profile;else candidate.profiles.push(profile);
-    if(!commitData(candidate)){q('#profileDialogMessage').textContent='保存できませんでした。入力内容は残っています。機器・データから現在の内容を書き出せます。';return;}
+    if(!await commitData(current=>{const candidate=clone(current),index=candidate.profiles.findIndex(p=>p.id===id);if(updating&&index>=0)candidate.profiles[index]=profile;else candidate.profiles.push(profile);return candidate;})){q('#profileDialogMessage').textContent='保存できませんでした。入力内容は残っています。機器・データから現在の内容を書き出せます。';return;}
     activeProfile=id;activeConditionName=name;renderProfiles();loaded();q('#profileDialog').close();toast(saveMode==='update'?'保存設定を更新しました。':'新しい設定として保存しました。');
   };
-  q('#profileCards').addEventListener('click',event=>{
+  q('#profileCards').addEventListener('click',async event=>{
     const id=event.target.dataset.favorite||event.target.dataset.deleteProfile;if(!id)return;
     const profile=data.profiles.find(p=>p.id===id);if(!profile)return;
-    const candidate=clone(data);
-    if(event.target.dataset.favorite)candidate.profiles.find(p=>p.id===id).favorite=!profile.favorite;
-    else {if(!confirm('「'+profile.name+'」を削除しますか？ 使用記録と画面上の値は残ります。'))return;candidate.profiles=candidate.profiles.filter(p=>p.id!==id);}
-    if(!commitData(candidate))return;
+    const favorite=!!event.target.dataset.favorite;
+    if(!favorite&&!confirm('「'+profile.name+'」を削除しますか？ 使用記録と画面上の値は残ります。'))return;
+    if(!await commitData(current=>{const candidate=clone(current),item=candidate.profiles.find(p=>p.id===id);if(favorite&&item)item.favorite=!item.favorite;else if(!favorite)candidate.profiles=candidate.profiles.filter(p=>p.id!==id);return candidate;}))return;
     if(!data.profiles.some(p=>p.id===activeProfile)&&activeProfile===id)activeProfile='';
     renderProfiles();sync();
   });
@@ -196,7 +194,7 @@
     ['playPhrase','repeatPhrase','compactPlay'].forEach(id=>q('#'+id).disabled=stale||!data.phrases.length);
   }
   function canPlay(){if(q('#scriptText').value!==splitSource){toast('原稿が変更されています。句を更新してから再生してください。');return false;}return true;}
-  ['splitScript','saveScript'].forEach(id=>q('#'+id).addEventListener('click',()=>{if(q('#scriptText').value===data.script){splitSource=data.script;scriptState();}}));
+  function scriptSaved(){splitSource=data.script;scriptState();}
   q('#sampleScript').onclick=()=>{if(q('#scriptText').value&&!confirm('編集中の原稿を例文に置き換えますか？'))return;q('#scriptText').value='本日はお時間をいただき、ありがとうございます。\nまず、今回の予定をお伝えします。\nご質問があれば、お知らせください。';q('#scriptText').dispatchEvent(new Event('input'));};
   q('#readingView').onclick=()=>{const reading=q('#page-script').classList.toggle('reading-mode');q('#readingView').setAttribute('aria-pressed',String(reading));q('#readingView').textContent=reading?'編集表示':'原稿表示';};
 
@@ -236,15 +234,15 @@
   }
   function endSession(reason){if(!currentSession)return;conditionChanged();currentSession.session.endedAt=new Date().toISOString();currentSession.session.reason=reason;pendingSessions.push(currentSession);currentSession=null;updateSessionChoices();}
   function resetRatings(){['effort','naturalness'].forEach(id=>{q('#'+id).value='5';q('#'+id+'Out').textContent='—';});q('#wouldUse').value='';q('#sessionNote').value='';}
-  function saveReflection(){
+  async function saveReflection(){
     const target=reflectionTarget(),condition=clone(target?.condition||sessionConditionSnapshot||currentCondition());
     const s=target?clone(target.session):{id:crypto.randomUUID(),startedAt:'',endedAt:'',kind:'manual',reason:'record',scene:'',segments:[]};
-    if(target===currentSession)conditionChanged();
-    if(target===currentSession)s.segments=clone(currentSession.session.segments);
+    if(target&&target===currentSession)conditionChanged();
+    if(target&&target===currentSession)s.segments=clone(currentSession.session.segments);
     s.scene=q('#sessionScene').value;if(!s.endedAt)s.endedAt=new Date().toISOString();
     const reflection={id:crypto.randomUUID(),at:now(),profile:target?.name||activeConditionName,conditionSnapshot:condition,session:s,effort:q('#effortOut').textContent==='—'?null:Number(q('#effort').value),naturalness:q('#naturalnessOut').textContent==='—'?null:Number(q('#naturalness').value),wouldUse:q('#wouldUse').value,note:q('#sessionNote').value};
-    if(!commitData({...data,reflections:[...data.reflections,reflection]}))return;
-    if(target===currentSession){currentSession=null;sessionConditionSnapshot=null;continueSession();}
+    if(!await commitData(current=>({...current,reflections:[...current.reflections,reflection]})))return;
+    if(target&&target===currentSession){currentSession=null;sessionConditionSnapshot=null;continueSession();}
     else pendingSessions=pendingSessions.filter(item=>item!==target);
     resetRatings();chosenSession='';updateSessionChoices();renderHistory();toast('設定と振り返りを保存しました。');
   }
@@ -283,7 +281,7 @@
     const changes=[];
     a.branches.forEach((branch,i)=>{for(const [key,label,unit] of [['enabled','有効',''],['delay','遅延',' ms'],['pitch','音程',' 半音'],['gain','ゲイン',' dB'],['pan','出力','']])if(branch[key]!==b.branches[i][key])changes.push((i?'B':'A')+' '+label+': '+branch[key]+unit+' → '+b.branches[i][key]+unit);});
     for(const [key,label] of [['masking','マスキング'],['direct','自声'],['metronome','拍'],['choral','TTS']])if(!same(a[key],b[key]))changes.push(label+'に差分');
-    if(a.masterGain!==b.masterGain)changes.push('全体音量: '+a.masterGain+' → '+b.masterGain+' dB');
+    if(a.masterGain!==b.masterGain)changes.push('補助音量: '+a.masterGain+' → '+b.masterGain+' dB');
     return changes.join(' ／ ')||'設定値は同じです';
   }
   function showTrial(){q('#trialBar').hidden=!trial.active;if(!trial.active)return;q('#trialBarTitle').textContent='比較 '+(trial.index+1)+' / '+trial.order.length+' · '+trialName(trial.order[trial.index])+(trial.changed?' · 比較条件から変更あり':'');q('#trialChangeNotice').hidden=!trial.changed;q('#trialDifference').textContent=trialDifference();q('#trialAdvance').textContent=trial.index===trial.order.length-1?'停止して比較を終える':'停止して次の条件';}
@@ -308,7 +306,7 @@
     ['機器を確認する','ヘッドホンを装着し、マイクと補助音の出力先を選びます。「機器確認」でマイクを一時的に確認できます。通話アプリの設定は「機器・データ」で確認してください。','inputDevice'],
     ['補助なしを確認する','保存設定で「補助なし」を読み込み、同じ短い文を声に出してみます。これを後で比べる基準にできます。案内を進めるだけでは設定は変更されません。','profileSelect'],
     ['一つの値を試す','Aを有効にして追加遅延だけを変える、または音程だけを変えるなど、一度に一つの違いを試します。ⓘで値の意味を確認できます。','delayA'],
-    ['小さい音で開始する','全体音量を小さくして「開始」を押します。同じ文を話し、負担や自然さを確認します。合わなければ「すべて停止」で止められます。','startAssist'],
+    ['小さい音で開始する','OS・ヘッドホン側も小さい音量にして「開始」を押します。補助音量の0 dBは安全な音圧を保証しません。同じ文を話し、負担や自然さを確認します。合わなければ「すべて停止」で止められます。','startAssist'],
     ['感想と設定を残す','「振り返り」で感想を任意で記録できます。使いたい値は「別名で保存」で名前と場面を付けます。次回はその設定を読み込んで、自分で開始します。','saveCurrentProfile']
   ];
   function showWalkthrough(index){
@@ -320,7 +318,7 @@
     q('#focusControl').hidden=q('#readFullGuide').hidden=true;q('#guideDrawer').hidden=false;q('.app-shell').classList.add('help-open');all('.highlight-control').forEach(node=>node.classList.remove('highlight-control'));q('#'+walkthrough[index][2]).classList.add('highlight-control');next.focus({preventScroll:true});
   }
   q('#startWalkthrough').onclick=()=>showWalkthrough(0);
-  window.workspace={sync,loaded,openSave,beginSession,endSession,conditionChanged,saveReflection,renderHistory,scriptState,canPlay,captureTrial,trialCondition:id=>clone(trialSnapshots[id]),showTrial,
+  window.workspace={sync,loaded,openSave,beginSession,endSession,conditionChanged,saveReflection,renderHistory,scriptState,scriptSaved,canPlay,captureTrial,trialCondition:id=>clone(trialSnapshots[id]),showTrial,
     closeHelp(){closeInfo();closeDrawer();},
     dismissEscape(){if(q('#profileDialog').open){q('#profileDialog').close();return true;}if(!popover.hidden){closeInfo(true);return true;}if(!q('#guideDrawer').hidden){closeDrawer(true);return true;}return false;},
     navigating(page){const current=q('.page.active')?.id.replace('page-','');if(page==='guide'&&current!=='guide')guideReturn=current||'assist';closeInfo();if(page!=='assist'&&drawerHelp===null)closeDrawer();},

@@ -2,7 +2,8 @@
 const test = require('node:test'), assert = require('node:assert/strict'), fs = require('node:fs'), vm = require('node:vm'), crypto = require('node:crypto');
 const source = fs.readFileSync(require.resolve('../app.js'), 'utf8').split('let audio =')[0];
 function load(saved) {
-  const context = vm.createContext({document: {}, crypto, TextEncoder, localStorage: {getItem: () => JSON.stringify(saved)}});
+  const context = vm.createContext({document: {}, crypto, TextEncoder, localStorage: {getItem: key => key==='stuttersuite.public.v1'?JSON.stringify(saved):null}});
+  vm.runInContext(fs.readFileSync(require.resolve('../storage.js'),'utf8'),context);
   vm.runInContext(source + ';globalThis.result={data,normalizeCondition,withoutAssistance,prepareData,recoveryRaw,storageBlocked};', context);
   return context.result;
 }
